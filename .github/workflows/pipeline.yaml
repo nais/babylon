@@ -21,7 +21,7 @@ jobs:
 
   docker:
     name: Build and push Docker image
-    needs: build
+    needs: check
     runs-on: ubuntu-latest
     if: "github.ref == 'refs/heads/main'"
 
