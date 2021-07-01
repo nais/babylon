@@ -3,7 +3,7 @@ name: build
 on: push
 
 env:
-  docker_image: ghcr.io/nais/sondr3-skeleton:${{ github.sha }}
+  docker_image: ghcr.io/nais/babylon:${{ github.sha }}
 
 jobs:
   build:
