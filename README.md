@@ -1,4 +1,4 @@
-# Babylon - Project Gardener
+# Babylon - Project Gardener [![build](https://github.com/nais/babylon/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/nais/babylon/actions/workflows/pipeline.yaml)
 
 ## Milestones
 
