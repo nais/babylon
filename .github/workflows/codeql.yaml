@@ -15,7 +15,7 @@ on:
   push:
     paths:
       - '**.go'
-      - .github/workflows/codeql-analysis.yml
+      - .github/workflows/codeql.yml
   pull_request:
     branches: [ main ]
   schedule:
