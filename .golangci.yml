@@ -1,0 +1,16 @@
+linters:
+  enable-all: true
+  disable:
+    - exhaustivestruct
+    - forbidigo # might want to reconsider
+    - gomnd
+    - gci
+    - goimports
+    - golint
+    - maligned
+    - scopelint
+    - wsl
+    - interfacer
+
+service:
+  golangci-lint-version: 1.41.x
