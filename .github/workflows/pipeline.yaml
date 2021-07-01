@@ -6,7 +6,7 @@ env:
   docker_image: ghcr.io/nais/babylon:${{ github.sha }}
 
 jobs:
-  build:
+  check:
     name: build
     runs-on: ubuntu-latest
 
@@ -19,6 +19,15 @@ jobs:
       - name: Test
         run: go test ./...
 
+  docker:
+    name: Build and push Docker image
+    needs: build
+    runs-on: ubuntu-latest
+    if: "github.ref == 'refs/heads/main'"
+
+    steps:
+      - uses: actions/checkout@v2
+
       - name: Build
         run: |
           docker image build --tag ${docker_image} .
@@ -28,11 +37,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Push image
         run: docker push ${docker_image}
+
   deployToDev:
     name: Deploy to dev
-    needs: build
+    needs: docker
     runs-on: ubuntu-latest
     if: "github.ref == 'refs/heads/main'"
 
