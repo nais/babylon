@@ -30,18 +30,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
         run: docker push ${docker_image}
-
   deployToDev:
-    name: "Deploy to dev"
-    needs: "build"
-    runs-on: "ubuntu-latest"
+    name: Deploy to dev
+    needs: build
+    runs-on: ubuntu-latest
+    if: "github.ref == 'refs/heads/main'"
+
     steps:
-      - uses: "actions/checkout@v2"
-      - name: "Deploy to DEV"
-        uses: "nais/deploy/actions/deploy@v1"
+      - uses: actions/checkout@v2
+      - name: Deploy to DEV
+        uses: nais/deploy/actions/deploy@v1
         env:
-          "APIKEY": "${{ secrets.NAIS_DEPLOY_APIKEY }}"
-          "CLUSTER": "dev-gcp"
-          "RESOURCE": ".nais/nais.yaml"
-          "VARS": ".nais/dev.yaml"
-          "VAR": "image=${{ env.docker_image }}"
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: dev-gcp
+          RESOURCE: .nais/nais.yaml
+          VARS: .nais/dev.yaml
+          VAR: image=${{ env.docker_image }}
