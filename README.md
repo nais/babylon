@@ -8,6 +8,15 @@
 - [ ] Define criteria for service deletion
 - [ ] Send slack message to the creators of application
 
+## Using `make`
+
+```shell
+# To build and deploy
+$ make # make deploy-local works too
+# To check linting
+$ make lint
+```
+
 ## Local kubernetes development 
 
 ```sh 
