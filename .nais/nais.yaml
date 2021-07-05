@@ -2,7 +2,7 @@ apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
   name: "babylon"
-  namespace: "babylon"
+  namespace: "default"
   labels:
     "team": "babylon"
 spec:
@@ -22,7 +22,7 @@ spec:
     max: 2
     cpuThresholdPercentage: 50
   prometheus:
-    enabled: false
+    enabled: true
     path: "/metrics"
   limits:
     cpu: "200m"
