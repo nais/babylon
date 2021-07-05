@@ -53,7 +53,7 @@ jobs:
         uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-gcp
+          CLUSTER: babylon-gcp
           RESOURCE: .nais/nais.yaml
           VARS: .nais/dev.yaml
           VAR: image=${{ env.docker_image }}
