@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func hello(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +24,9 @@ func main() {
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/isReady", isReady)
 	http.HandleFunc("/isAlive", isAlive)
+
+	http.Handle("/metrics", promhttp.Handler())
+
 	fmt.Println("Listening on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
