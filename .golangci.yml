@@ -1,6 +1,7 @@
 linters:
   enable-all: true
   disable:
+    - gochecknoglobals
     - exhaustivestruct
     - forbidigo # might want to reconsider
     - gomnd

@@ -14,6 +14,7 @@ spec:
       labels:
         app: babylon
     spec:
+      serviceAccountName: babylon-service-account
       containers:
         - name: babylon
           imagePullPolicy: Never
@@ -22,9 +23,44 @@ spec:
             - containerPort: 8080
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: babylon-service-account
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-cluster-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "services"
+      - "endpoints"
+      - "pods"
+    verbs:
+      - "get"
+      - "delete"
+      - "list"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: babylon-cluster-role-binding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: babylon-service-account
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: babylon-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
 kind: Service
 metadata:
-  name: skeleton-service
+  name: babylon-service
 spec:
   selector:
     app: babylon

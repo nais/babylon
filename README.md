@@ -19,3 +19,13 @@ $ docker build -t babylon .
 
 $ kubectl apply -f minikube.yaml
 ```
+
+### Access running application
+
+```shell
+$ minikube ip
+192.168.64.2 # example, copy your own
+$ sudo $EDITOR /etc/hosts
+192.168.64.2 babylon.local
+$ sudo killall -HUP mDNSResponder
+```

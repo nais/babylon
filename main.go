@@ -1,15 +1,28 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
+
+var podsDeleted = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "babylon_pods_deleted_total",
+	Help: "Number of pods deleted in total",
+})
 
 func hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello world!")
@@ -37,7 +50,7 @@ func Setup(level string) {
 }
 
 func main() {
-	Setup("info")
+	Setup("debug")
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/isReady", isReady)
 	http.HandleFunc("/isAlive", isAlive)
@@ -50,10 +63,53 @@ func main() {
 		panic(err.Error())
 	}
 	// creates the clientset
-	_, err = kubernetes.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
 
+	go gardener(client)
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+const ImagePullBackOff = "ImagePullBackOff"
+
+func gardener(client kubernetes.Interface) {
+	ticker := time.Tick(5 * time.Second)
+
+	for {
+		<-ticker
+		pods, err := client.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+		var statusError *k8serrors.StatusError
+		if isStatus := errors.As(err, &statusError); isStatus {
+			log.Errorf("Error getting pod %v", statusError.ErrStatus.Message)
+		} else if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		for i, pod := range pods.Items {
+			log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
+			if shouldPodBeDeleted(&pods.Items[i]) {
+				err = client.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+				if err != nil {
+					log.Errorf("Could not delete pod %s, %v", pod.Name, err)
+				} else {
+					log.Infof("Deleting pod %s", pod.Name)
+					podsDeleted.Inc()
+				}
+			}
+		}
+	}
+}
+
+func shouldPodBeDeleted(pod *v1.Pod) bool {
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		waiting := containerStatus.State.Waiting
+		if waiting != nil && waiting.Reason == ImagePullBackOff {
+			return true
+		}
+	}
+
+	return false
 }
