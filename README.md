@@ -7,3 +7,15 @@
 - [ ] Delete a K8s resource  
 - [ ] Define criteria for service deletion
 - [ ] Send slack message to the creators of application
+
+## Local kubernetes development 
+
+```sh 
+$ minikube start
+
+$ eval $(minikube -p minikube docker-env)
+
+$ docker build -t babylon .
+
+$ kubectl apply -f minikube.yaml
+```
