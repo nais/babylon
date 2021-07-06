@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"net/http"
 	"time"
+
+	appconfig "github.com/nais/babylon/config"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -18,6 +21,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
+
+var cfg = appconfig.DefaultConfig()
 
 var podsDeleted = promauto.NewCounter(prometheus.CounterOpts{
 	Name: "babylon_pods_deleted_total",
@@ -50,12 +55,19 @@ func Setup(level string) {
 }
 
 func main() {
-	Setup("debug")
+	dryRun := appconfig.GetEnv("DRY_RUN", fmt.Sprintf("%v", cfg.DryRun)) == "true"
+	flag.StringVar(&cfg.LogLevel, "log-level", appconfig.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
+	flag.BoolVar(&cfg.DryRun, "dry-run", dryRun, "whether to dry run babylon")
+	flag.StringVar(&cfg.Port, "port", appconfig.GetEnv("PORT", cfg.Port), "set port number")
+
+	flag.Parse()
+
+	Setup(cfg.LogLevel)
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/isReady", isReady)
 	http.HandleFunc("/isAlive", isAlive)
 	http.Handle("/metrics", promhttp.Handler())
-	log.Info("Listening on http://localhost:8080")
+	log.Infof("Listening on http://localhost:%v", cfg.Port)
 
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
@@ -70,7 +82,7 @@ func main() {
 
 	go gardener(client)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", cfg.Port), nil))
 }
 
 const ImagePullBackOff = "ImagePullBackOff"
