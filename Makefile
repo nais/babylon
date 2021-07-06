@@ -12,4 +12,4 @@ lint:
 	golangci-lint run --fix
 
 hooks:
-    pre-commit install
+	pre-commit install
