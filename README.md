@@ -1,5 +1,10 @@
 # Babylon - Project Gardener [![build](https://github.com/nais/babylon/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/nais/babylon/actions/workflows/pipeline.yaml) [![CodeQL](https://github.com/nais/babylon/actions/workflows/codeql.yaml/badge.svg)](https://github.com/nais/babylon/actions/workflows/codeql.yaml) [![Go Report Card](https://goreportcard.com/badge/github.com/nais/babylon)](https://goreportcard.com/report/github.com/nais/babylon)
 
+## About
+
+By default, the application will not perform destructive actions. To arm it, either set the `-armed`-flag 
+or set the `ARMED` 💥 environment variable to true. 
+
 ## Milestones
 
 - [ ] Deploy app on NAIS
