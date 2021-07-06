@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	"github.com/nais/babylon/pkg/config"
 	logger2 "github.com/nais/babylon/pkg/logger"
 
@@ -28,6 +30,11 @@ var cfg = config.DefaultConfig()
 var podsDeleted = promauto.NewCounter(prometheus.CounterOpts{
 	Name: "babylon_pods_deleted_total",
 	Help: "Number of pods deleted in total",
+})
+
+var deploymentsDeleted = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "babylon_deployments_deleted_total",
+	Help: "Number of deployments deleted in total",
 })
 
 func hello(w http.ResponseWriter, r *http.Request) {
@@ -85,26 +92,47 @@ func gardener(client kubernetes.Interface) {
 
 	for {
 		<-ticker
-		pods, err := client.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
-		var statusError *k8serrors.StatusError
-		if isStatus := errors.As(err, &statusError); isStatus {
-			log.Errorf("Error getting pod %v", statusError.ErrStatus.Message)
-		} else if err != nil {
-			log.Fatal(err.Error())
-		}
+		deployments, err := client.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
+		logError(err)
+		for _, deployment := range deployments.Items {
+			labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
+			pods, err := client.CoreV1().Pods("").List(context.TODO(),
+				metav1.ListOptions{LabelSelector: labelSelector.AsSelector().String()})
+			if !logError(err) {
+				for i, pod := range pods.Items {
+					log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
+					if shouldPodBeDeleted(&pods.Items[i]) {
+						err = client.AppsV1().Deployments(deployment.Namespace).Delete(
+							context.TODO(), deployment.Name, metav1.DeleteOptions{})
+						if err != nil {
+							log.Errorf("Could not delete deployment %s, %v", deployment.Name, err)
+						} else {
+							log.Infof("Deleting deployment %s", deployment.Name)
+							deploymentsDeleted.Inc()
+							podsDeleted.Add(float64(len(pods.Items)))
+						}
 
-		for i, pod := range pods.Items {
-			log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
-			if shouldPodBeDeleted(&pods.Items[i]) {
-				err = client.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-				if err != nil {
-					log.Errorf("Could not delete pod %s, %v", pod.Name, err)
-				} else {
-					log.Infof("Deleting pod %s", pod.Name)
-					podsDeleted.Inc()
+						break
+					}
 				}
 			}
 		}
+	}
+}
+
+func logError(err error) bool {
+	var statusError *k8serrors.StatusError
+	switch {
+	case errors.As(err, &statusError):
+		log.Errorf("Error getting deployment %v", statusError.ErrStatus.Message)
+
+		return true
+	case err != nil:
+		log.Fatal(err.Error())
+
+		return true
+	default:
+		return false
 	}
 }
 
