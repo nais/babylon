@@ -3,7 +3,7 @@
 ## About
 
 By default, the application will not perform destructive actions. To arm it, either set the `-armed`-flag 
-or set the `ARMED` environment variable to true. 
+or set the `ARMED` 💥 environment variable to true. 
 
 ## Milestones
 
