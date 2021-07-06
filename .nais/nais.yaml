@@ -9,11 +9,11 @@ spec:
   image: {{image}}
   env:
     - name: LOG_LEVEL
-      value: {{log_level}}
+      value: "{{log_level}}"
     - name: PORT
-      value: {{port}}
+      value: "{{port}}"
     - name: DRY_RUN
-      value: {{dry_run}}
+      value: "{{dry_run}}"
   liveness:
     path: "/isalive"
     port: 8080
