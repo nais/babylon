@@ -38,3 +38,7 @@ $ sudo $EDITOR /etc/hosts
 192.168.64.2 babylon.local
 $ sudo killall -HUP mDNSResponder
 ```
+
+### Developer setup
+
+You must have pre-commit installed, then run `make hooks` to install git hooks. 

@@ -10,3 +10,6 @@ docker-build:
 
 lint:
 	golangci-lint run --fix
+
+hooks:
+    pre-commit install
