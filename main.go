@@ -49,10 +49,10 @@ func main() {
 	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
 
 	flag.Parse()
+	logger2.Setup(cfg.LogLevel)
 
 	log.Infof("%+v", cfg)
 
-	logger2.Setup(cfg.LogLevel)
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/isready", isReady)
 	http.HandleFunc("/isalive", isAlive)
