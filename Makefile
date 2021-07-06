@@ -1,9 +1,11 @@
 PHONY: all
 .DEFAULT_GOAL := deploy-local
 
-deploy-local: docker-build
+deploy-local:
 	if [ "$(shell minikube status | grep host | rev | cut -d' ' -f1 | rev)" == "Stopped" ]; then minikube start; fi
+	# apply minikube docker variables and build image
 	@eval $$(minikube docker-env --shell=bash); \
+	$(MAKE) docker-build; \
 	kubectl delete -f minikube.yaml; \
 	kubectl apply -f minikube.yaml
 
