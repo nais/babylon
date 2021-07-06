@@ -50,6 +50,8 @@ func main() {
 
 	flag.Parse()
 
+	log.Infof("%+v", cfg)
+
 	logger2.Setup(cfg.LogLevel)
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/isready", isReady)
@@ -68,7 +70,10 @@ func main() {
 		panic(err.Error())
 	}
 
-	go gardener(client)
+	if !cfg.DryRun {
+		log.Info("starting gardener")
+		go gardener(client)
+	}
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", cfg.Port), nil))
 }

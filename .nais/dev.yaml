@@ -1,2 +1,6 @@
 ingresses:
   - "https://babylon.dev.intern.nav.no"
+
+log_level: "info"
+port: "8080"
+dry_run: "true"
