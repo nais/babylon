@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/nais/babylon/logger"
 	"net/http"
 	"time"
 
@@ -41,19 +42,6 @@ func isReady(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "OK")
 }
 
-func Setup(level string) {
-	log.SetFormatter(&log.JSONFormatter{FieldMap: log.FieldMap{
-		log.FieldKeyMsg: "message",
-	}})
-
-	l, err := log.ParseLevel(level)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.SetLevel(l)
-}
-
 func main() {
 	dryRun := appconfig.GetEnv("DRY_RUN", fmt.Sprintf("%v", cfg.DryRun)) == "true"
 	flag.StringVar(&cfg.LogLevel, "log-level", appconfig.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
@@ -62,7 +50,7 @@ func main() {
 
 	flag.Parse()
 
-	Setup(cfg.LogLevel)
+	logger.Setup(cfg.LogLevel)
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/isReady", isReady)
 	http.HandleFunc("/isAlive", isAlive)
