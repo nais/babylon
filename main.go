@@ -52,8 +52,8 @@ func main() {
 
 	logger2.Setup(cfg.LogLevel)
 	http.HandleFunc("/", hello)
-	http.HandleFunc("/isReady", isReady)
-	http.HandleFunc("/isAlive", isAlive)
+	http.HandleFunc("/isready", isReady)
+	http.HandleFunc("/isalive", isAlive)
 	http.Handle("/metrics", promhttp.Handler())
 	log.Infof("Listening on http://localhost:%v", cfg.Port)
 
