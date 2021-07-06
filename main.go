@@ -43,9 +43,9 @@ func isReady(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	dryRun := config.GetEnv("DRY_RUN", fmt.Sprintf("%v", cfg.DryRun)) == "true"
+	isArmed := config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
 	flag.StringVar(&cfg.LogLevel, "log-level", config.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
-	flag.BoolVar(&cfg.DryRun, "dry-run", dryRun, "whether to dry run babylon")
+	flag.BoolVar(&cfg.Armed, "armed", isArmed, "whether to start destruction")
 	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
 
 	flag.Parse()
@@ -70,7 +70,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	if !cfg.DryRun {
+	if cfg.Armed {
 		log.Info("starting gardener")
 		go gardener(client)
 	}

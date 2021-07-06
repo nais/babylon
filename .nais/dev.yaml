@@ -3,4 +3,4 @@ ingresses:
 
 log_level: "info"
 port: "8080"
-dry_run: "true"
+armed: "false"

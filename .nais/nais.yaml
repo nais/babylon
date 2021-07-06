@@ -12,8 +12,8 @@ spec:
       value: "{{log_level}}"
     - name: PORT
       value: "{{port}}"
-    - name: DRY_RUN
-      value: "{{dry_run}}"
+    - name: ARMED
+      value: "{{armed}}"
   liveness:
     path: "/isalive"
     port: 8080

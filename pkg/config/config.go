@@ -3,7 +3,7 @@ package config
 import "os"
 
 type Config struct {
-	DryRun   bool
+	Armed    bool
 	LogLevel string
 	Port     string
 }
@@ -12,7 +12,7 @@ func DefaultConfig() Config {
 	return Config{
 		LogLevel: "info",
 		Port:     "8080",
-		DryRun:   false,
+		Armed:    false,
 	}
 }
 
