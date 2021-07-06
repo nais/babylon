@@ -5,10 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/nais/babylon/pkg/config"
-	logger2 "github.com/nais/babylon/pkg/logger"
 	"net/http"
 	"time"
+
+	"github.com/nais/babylon/pkg/config"
+	logger2 "github.com/nais/babylon/pkg/logger"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
