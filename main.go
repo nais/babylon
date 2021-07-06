@@ -5,11 +5,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/nais/babylon/logger"
+	"github.com/nais/babylon/pkg/config"
+	logger2 "github.com/nais/babylon/pkg/logger"
 	"net/http"
 	"time"
-
-	appconfig "github.com/nais/babylon/config"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -23,7 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var cfg = appconfig.DefaultConfig()
+var cfg = config.DefaultConfig()
 
 var podsDeleted = promauto.NewCounter(prometheus.CounterOpts{
 	Name: "babylon_pods_deleted_total",
@@ -43,14 +42,14 @@ func isReady(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	dryRun := appconfig.GetEnv("DRY_RUN", fmt.Sprintf("%v", cfg.DryRun)) == "true"
-	flag.StringVar(&cfg.LogLevel, "log-level", appconfig.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
+	dryRun := config.GetEnv("DRY_RUN", fmt.Sprintf("%v", cfg.DryRun)) == "true"
+	flag.StringVar(&cfg.LogLevel, "log-level", config.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
 	flag.BoolVar(&cfg.DryRun, "dry-run", dryRun, "whether to dry run babylon")
-	flag.StringVar(&cfg.Port, "port", appconfig.GetEnv("PORT", cfg.Port), "set port number")
+	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
 
 	flag.Parse()
 
-	logger.Setup(cfg.LogLevel)
+	logger2.Setup(cfg.LogLevel)
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/isReady", isReady)
 	http.HandleFunc("/isAlive", isAlive)

@@ -11,8 +11,7 @@ RUN go mod download
 # Copy the go source
 COPY main.go main.go
 
-# TODO: Enable when code is in pkg/
-# COPY pkg/ pkg/
+COPY pkg/ pkg/
 
 RUN go build -o babylon
 
