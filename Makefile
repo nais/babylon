@@ -3,7 +3,8 @@ PHONY: all
 
 deploy-local: docker-build
 	if [ "$(shell minikube status | grep host | rev | cut -d' ' -f1 | rev)" == "Stopped" ]; then minikube start; fi
-	kubectl delete -f minikube.yaml
+	@eval $$(minikube docker-env --shell=bash); \
+	kubectl delete -f minikube.yaml; \
 	kubectl apply -f minikube.yaml
 
 docker-build:
