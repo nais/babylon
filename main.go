@@ -2,40 +2,22 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	"github.com/nais/babylon/pkg/config"
+	"github.com/nais/babylon/pkg/deployment"
 	logger2 "github.com/nais/babylon/pkg/logger"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	v1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"github.com/nais/babylon/pkg/metrics"
+	"github.com/nais/babylon/pkg/service"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
 )
-
-var cfg = config.DefaultConfig()
-
-var podsDeleted = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "babylon_pods_deleted_total",
-	Help: "Number of pods deleted in total",
-})
-
-var deploymentsDeleted = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "babylon_deployments_deleted_total",
-	Help: "Number of deployments deleted in total",
-})
 
 func hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello world!")
@@ -50,13 +32,23 @@ func isReady(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	cfg := config.DefaultConfig()
 	isArmed := config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
 	flag.StringVar(&cfg.LogLevel, "log-level", config.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
 	flag.BoolVar(&cfg.Armed, "armed", isArmed, "whether to start destruction")
 	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
+	var tickrate string
 
+	flag.StringVar(&tickrate, "timeout", config.GetEnv("TICKRATE", "5s"), "tickrate of main loop")
 	flag.Parse()
+	duration, err := time.ParseDuration(tickrate)
+	if err == nil {
+		cfg.TickRate = duration
+	}
 	logger2.Setup(cfg.LogLevel)
+
+	// TODO: perhaps timeout between each tick?
+	ctx := context.Background()
 
 	log.Infof("%+v", cfg)
 
@@ -76,73 +68,27 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+	metrics := metrics.Init()
+	service := service.Service{Config: &cfg, Client: client, Metrics: &metrics}
 
-	if cfg.Armed {
-		log.Info("starting gardener")
-		go gardener(client)
-	}
+	log.Info("starting gardener")
+	go gardener(ctx, &service)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", cfg.Port), nil))
 }
 
-const ImagePullBackOff = "ImagePullBackOff"
-
-func gardener(client kubernetes.Interface) {
-	ticker := time.Tick(5 * time.Second)
+func gardener(ctx context.Context, service *service.Service) {
+	ticker := time.Tick(service.Config.TickRate)
 
 	for {
 		<-ticker
-		deployments, err := client.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
-		logError(err)
-		for _, deployment := range deployments.Items {
-			labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
-			pods, err := client.CoreV1().Pods("").List(context.TODO(),
-				metav1.ListOptions{LabelSelector: labelSelector.AsSelector().String()})
-			if !logError(err) {
-				for i, pod := range pods.Items {
-					log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
-					if shouldPodBeDeleted(&pods.Items[i]) {
-						err = client.AppsV1().Deployments(deployment.Namespace).Delete(
-							context.TODO(), deployment.Name, metav1.DeleteOptions{})
-						if err != nil {
-							log.Errorf("Could not delete deployment %s, %v", deployment.Name, err)
-						} else {
-							log.Infof("Deleting deployment %s", deployment.Name)
-							deploymentsDeleted.Inc()
-							podsDeleted.Add(float64(len(pods.Items)))
-						}
-
-						break
-					}
-				}
-			}
+		deployments, err := service.Client.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
+		if logger2.Logk8sError(err) {
+			continue
+		}
+		deploymentFails := deployment.GetFailingDeployments(ctx, service, deployments)
+		for _, deploy := range deploymentFails {
+			deployment.PruneFailingDeployment(ctx, service, deploy)
 		}
 	}
-}
-
-func logError(err error) bool {
-	var statusError *k8serrors.StatusError
-	switch {
-	case errors.As(err, &statusError):
-		log.Errorf("Error getting deployment %v", statusError.ErrStatus.Message)
-
-		return true
-	case err != nil:
-		log.Fatal(err.Error())
-
-		return true
-	default:
-		return false
-	}
-}
-
-func shouldPodBeDeleted(pod *v1.Pod) bool {
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		waiting := containerStatus.State.Waiting
-		if waiting != nil && waiting.Reason == ImagePullBackOff {
-			return true
-		}
-	}
-
-	return false
 }
