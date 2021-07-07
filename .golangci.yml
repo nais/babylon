@@ -1,17 +1,13 @@
 linters:
   enable-all: true
   disable:
-    - gochecknoglobals
-    - exhaustivestruct
-    - forbidigo # might want to reconsider
-    - gomnd
-    - gci
-    - goimports
-    - golint
-    - maligned
-    - scopelint
-    - wsl
-    - interfacer
+     - exhaustivestruct
+     - golint
+     - maligned
+     - scopelint
+     - wsl
+     - interfacer
+     - godox
 
 service:
   golangci-lint-version: 1.41.x
