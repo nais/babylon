@@ -8,6 +8,6 @@ import (
 
 type Service struct {
 	Config  *config.Config
-	Client  *kubernetes.Clientset
+	Client  kubernetes.Interface
 	Metrics *metrics.Metrics
 }
