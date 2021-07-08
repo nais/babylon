@@ -11,6 +11,7 @@ import (
 	"github.com/nais/babylon/pkg/service"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -97,4 +98,53 @@ func TestPruneFailingDeployment(t *testing.T) {
 		actions := fk.Actions()
 		log.Infof("actions: %+v", actions)
 	})
+}
+
+func TestShouldPodBeDeleted(t *testing.T) {
+	t.Parallel()
+	makePodWithState := func(state corev1.ContainerState) corev1.Pod {
+		return corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "failingpod",
+			}, Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{State: state},
+				},
+			},
+		}
+	}
+
+	shouldBeDeletedTest := []struct {
+		Name     string
+		State    corev1.ContainerState
+		Expected bool
+	}{
+		{
+			Name: "ImagePullBackOff marks for deletion",
+			State: corev1.ContainerState{
+				Waiting: &corev1.ContainerStateWaiting{
+					Reason: deployment2.ImagePullBackOff,
+				},
+			},
+			Expected: true,
+		},
+		{
+			Name:     "No mark for deletion",
+			State:    corev1.ContainerState{},
+			Expected: false,
+		},
+	}
+
+	for _, tt := range shouldBeDeletedTest {
+		tt := tt
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			pod := makePodWithState(tt.State)
+			res := deployment2.ShouldPodBeDeleted(&pod)
+
+			if res != tt.Expected {
+				t.Fatalf("Expected pod to be marked for deletion: %v, got: %v, pod: %+v", tt.Expected, res, pod)
+			}
+		})
+	}
 }

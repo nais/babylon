@@ -26,7 +26,7 @@ func GetFailingDeployments(ctx context.Context, s *service.Service, deployments 
 
 		for j, pod := range pods.Items {
 			log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
-			if shouldPodBeDeleted(&pods.Items[j]) {
+			if ShouldPodBeDeleted(&pods.Items[j]) {
 				fails = append(fails, &deployments.Items[i])
 			}
 		}
@@ -35,7 +35,7 @@ func GetFailingDeployments(ctx context.Context, s *service.Service, deployments 
 	return fails
 }
 
-func shouldPodBeDeleted(pod *v1core.Pod) bool {
+func ShouldPodBeDeleted(pod *v1core.Pod) bool {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil && waiting.Reason == ImagePullBackOff {
