@@ -102,11 +102,12 @@ func TestPruneFailingDeployment(t *testing.T) {
 
 func TestShouldPodBeDeleted(t *testing.T) {
 	t.Parallel()
-	makePodWithState := func(state v1.ContainerState) v1.Pod {
+	makePodWithState := func(state v1.ContainerState, phase v1.PodPhase) v1.Pod {
 		return v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "failingpod",
 			}, Status: v1.PodStatus{
+				Phase: phase,
 				ContainerStatuses: []v1.ContainerStatus{
 					{State: state},
 				},
@@ -117,6 +118,7 @@ func TestShouldPodBeDeleted(t *testing.T) {
 	shouldBeDeletedTest := []struct {
 		Name     string
 		State    v1.ContainerState
+		Phase    v1.PodPhase
 		Expected bool
 	}{
 		{
@@ -126,11 +128,13 @@ func TestShouldPodBeDeleted(t *testing.T) {
 					Reason: deployment2.ImagePullBackOff,
 				},
 			},
+			Phase:    v1.PodPending,
 			Expected: true,
 		},
 		{
 			Name:     "No mark for deletion",
 			State:    v1.ContainerState{},
+			Phase:    v1.PodRunning,
 			Expected: false,
 		},
 	}
@@ -139,7 +143,7 @@ func TestShouldPodBeDeleted(t *testing.T) {
 		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			pod := makePodWithState(tt.State)
+			pod := makePodWithState(tt.State, tt.Phase)
 			res := deployment2.ShouldPodBeDeleted(&pod)
 
 			if res != tt.Expected {

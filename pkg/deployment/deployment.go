@@ -39,14 +39,27 @@ func GetFailingDeployments(
 }
 
 func ShouldPodBeDeleted(pod *v1.Pod) bool {
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		waiting := containerStatus.State.Waiting
-		if waiting != nil && waiting.Reason == ImagePullBackOff {
-			return true
+	switch {
+	case pod.Status.Phase == v1.PodRunning:
+		return false
+	case pod.Status.Phase == v1.PodSucceeded:
+		return false
+	case pod.Status.Phase == v1.PodPending:
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			waiting := containerStatus.State.Waiting
+			if waiting != nil && waiting.Reason == ImagePullBackOff {
+				return true
+			}
 		}
-	}
 
-	return false
+		return false
+	case pod.Status.Phase == v1.PodFailed:
+		return false // should be true?
+	case pod.Status.Phase == v1.PodUnknown:
+		return false
+	default:
+		return false
+	}
 }
 
 func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
