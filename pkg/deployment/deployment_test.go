@@ -10,8 +10,8 @@ import (
 	metrics2 "github.com/nais/babylon/pkg/metrics"
 	"github.com/nais/babylon/pkg/service"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -30,7 +30,7 @@ func TestPruneFailingDeployment(t *testing.T) {
 		defer cancel()
 
 		// Create fake client with deployment
-		deployment := v1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "torrLoping"}}
+		deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "torrLoping"}}
 		fk := fake.NewSimpleClientset(&deployment)
 
 		cfg := config.DefaultConfig()
@@ -51,12 +51,12 @@ func TestPruneFailingDeployment(t *testing.T) {
 		})
 
 		// We will create an informer that writes added deployments to a channel.
-		deployments := make(chan *v1.Deployment, 1)
+		deployments := make(chan *appsv1.Deployment, 1)
 		informersFactory := informers.NewSharedInformerFactory(fk, 0)
 		deploymentInformer := informersFactory.Apps().V1().Deployments().Informer()
 		deploymentInformer.AddEventHandler(&cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) {
-				d, _ := obj.(*v1.Deployment)
+				d, _ := obj.(*appsv1.Deployment)
 				t.Logf("deployment deleted: %s/%s", d.Namespace, d.Name)
 				deployments <- d
 			},
@@ -102,12 +102,12 @@ func TestPruneFailingDeployment(t *testing.T) {
 
 func TestShouldPodBeDeleted(t *testing.T) {
 	t.Parallel()
-	makePodWithState := func(state corev1.ContainerState) corev1.Pod {
-		return corev1.Pod{
+	makePodWithState := func(state v1.ContainerState) v1.Pod {
+		return v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "failingpod",
-			}, Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
+			}, Status: v1.PodStatus{
+				ContainerStatuses: []v1.ContainerStatus{
 					{State: state},
 				},
 			},
@@ -116,13 +116,13 @@ func TestShouldPodBeDeleted(t *testing.T) {
 
 	shouldBeDeletedTest := []struct {
 		Name     string
-		State    corev1.ContainerState
+		State    v1.ContainerState
 		Expected bool
 	}{
 		{
 			Name: "ImagePullBackOff marks for deletion",
-			State: corev1.ContainerState{
-				Waiting: &corev1.ContainerStateWaiting{
+			State: v1.ContainerState{
+				Waiting: &v1.ContainerStateWaiting{
 					Reason: deployment2.ImagePullBackOff,
 				},
 			},
@@ -130,7 +130,7 @@ func TestShouldPodBeDeleted(t *testing.T) {
 		},
 		{
 			Name:     "No mark for deletion",
-			State:    corev1.ContainerState{},
+			State:    v1.ContainerState{},
 			Expected: false,
 		},
 	}

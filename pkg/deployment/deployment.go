@@ -6,16 +6,19 @@ import (
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/service"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/apps/v1"
-	v1core "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 const ImagePullBackOff = "ImagePullBackOff"
 
-func GetFailingDeployments(ctx context.Context, s *service.Service, deployments *v1.DeploymentList) []*v1.Deployment {
-	var fails []*v1.Deployment
+func GetFailingDeployments(
+	ctx context.Context,
+	s *service.Service,
+	deployments *appsv1.DeploymentList) []*appsv1.Deployment {
+	var fails []*appsv1.Deployment
 	for i, deployment := range deployments.Items {
 		labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
 		pods, err := s.Client.CoreV1().Pods("").List(ctx,
@@ -35,7 +38,7 @@ func GetFailingDeployments(ctx context.Context, s *service.Service, deployments 
 	return fails
 }
 
-func ShouldPodBeDeleted(pod *v1core.Pod) bool {
+func ShouldPodBeDeleted(pod *v1.Pod) bool {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil && waiting.Reason == ImagePullBackOff {
@@ -46,7 +49,7 @@ func ShouldPodBeDeleted(pod *v1core.Pod) bool {
 	return false
 }
 
-func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *v1.Deployment) {
+func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
 	err := s.Client.AppsV1().Deployments(deployment.Namespace).Delete(ctx, deployment.Name, s.Config.DeleteOptions())
 	if err != nil {
 		log.Errorf("Could not delete deployment %s, %v", deployment.Name, err)
