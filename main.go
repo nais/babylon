@@ -16,7 +16,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	metrics2 "sigs.k8s.io/controller-runtime/pkg/metrics"
+	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 func main() {
@@ -38,8 +38,8 @@ func main() {
 	// TODO: perhaps timeout between each tick?
 	ctx := context.Background()
 
-	metrics := metrics.Init()
-	metrics2.Registry.MustRegister(metrics.PodsDeleted, metrics.DeploymentsDeleted)
+	m := metrics.Init()
+	ctrlMetrics.Registry.MustRegister(m.PodsDeleted, m.DeploymentsDeleted)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 clientgoscheme.Scheme,
 		MetricsBindAddress:     ":8080",
@@ -52,7 +52,7 @@ func main() {
 	}
 
 	log.Infof("%+v", cfg)
-	log.Infof("Metrics: http://localhost:%v/metrics", cfg.Port)
+	log.Infof("Metrics: http://localhost:%v/m", cfg.Port)
 
 	c := mgr.GetClient()
 	if !cfg.Armed {
@@ -62,10 +62,10 @@ func main() {
 		log.Info("Armed and dangerous! 🪖")
 	}
 
-	service := service.Service{Config: &cfg, Client: c, Metrics: &metrics}
+	s := service.Service{Config: &cfg, Client: c, Metrics: &m}
 
 	log.Info("starting gardener")
-	go gardener(ctx, &service)
+	go gardener(ctx, &s)
 
 	log.Fatal(mgr.Start(ctx))
 }
