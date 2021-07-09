@@ -3,9 +3,6 @@ package config
 import (
 	"os"
 	"time"
-
-	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const DefaultTickRate = 5 * time.Second
@@ -32,15 +29,4 @@ func GetEnv(name, fallback string) string {
 	}
 
 	return fallback
-}
-
-func (c *Config) DeleteOptions() metav1.DeleteOptions {
-	if c.Armed {
-		log.Info("Armed and dangerous! 🪖")
-
-		return metav1.DeleteOptions{}
-	}
-	log.Info("Running in dry run-mode, nothing will be deleted.")
-
-	return metav1.DeleteOptions{DryRun: []string{metav1.DryRunAll}}
 }

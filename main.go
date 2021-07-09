@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
@@ -12,24 +11,13 @@ import (
 	logger2 "github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/metrics"
 	"github.com/nais/babylon/pkg/service"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	appsv1 "k8s.io/api/apps/v1"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	metrics2 "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
-
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello world!")
-}
-
-func isAlive(w http.ResponseWriter, r *http.Request) {
-	_, _ = fmt.Fprintf(w, "OK")
-}
-
-func isReady(w http.ResponseWriter, r *http.Request) {
-	_, _ = fmt.Fprintf(w, "OK")
-}
 
 func main() {
 	cfg := config.DefaultConfig()
@@ -50,31 +38,36 @@ func main() {
 	// TODO: perhaps timeout between each tick?
 	ctx := context.Background()
 
-	log.Infof("%+v", cfg)
-
-	http.HandleFunc("/", hello)
-	http.HandleFunc("/isready", isReady)
-	http.HandleFunc("/isalive", isAlive)
-	http.Handle("/metrics", promhttp.Handler())
-	log.Infof("Listening on http://localhost:%v", cfg.Port)
-
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-	// creates the clientset
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
 	metrics := metrics.Init()
-	service := service.Service{Config: &cfg, Client: client, Metrics: &metrics}
+	metrics2.Registry.MustRegister(metrics.PodsDeleted, metrics.DeploymentsDeleted)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:                 clientgoscheme.Scheme,
+		MetricsBindAddress:     ":8080",
+		HealthProbeBindAddress: ":8081",
+	})
+	if err != nil {
+		log.Fatal(err.Error())
+
+		return
+	}
+
+	log.Infof("%+v", cfg)
+	log.Infof("Metrics: http://localhost:%v/metrics", cfg.Port)
+
+	c := mgr.GetClient()
+	if !cfg.Armed {
+		log.Info("Not armed and dangerous! :(")
+		c = client.NewDryRunClient(c)
+	} else {
+		log.Info("Armed and dangerous! 🪖")
+	}
+
+	service := service.Service{Config: &cfg, Client: c, Metrics: &metrics}
 
 	log.Info("starting gardener")
 	go gardener(ctx, &service)
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", cfg.Port), nil))
+	log.Fatal(mgr.Start(ctx))
 }
 
 func gardener(ctx context.Context, service *service.Service) {
@@ -82,7 +75,8 @@ func gardener(ctx context.Context, service *service.Service) {
 
 	for {
 		<-ticker
-		deployments, err := service.Client.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
+		deployments := &appsv1.DeploymentList{}
+		err := service.Client.List(ctx, deployments)
 		if logger2.Logk8sError(err) {
 			continue
 		}

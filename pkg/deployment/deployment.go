@@ -8,8 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const ImagePullBackOff = "ImagePullBackOff"
@@ -21,8 +21,8 @@ func GetFailingDeployments(
 	var fails []*appsv1.Deployment
 	for i, deployment := range deployments.Items {
 		labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
-		pods, err := s.Client.CoreV1().Pods("").List(ctx,
-			metav1.ListOptions{LabelSelector: labelSelector.AsSelector().String()})
+		pods := &v1.PodList{}
+		err := s.Client.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
 		if logger.Logk8sError(err) {
 			continue
 		}
@@ -63,7 +63,7 @@ func ShouldPodBeDeleted(pod *v1.Pod) bool {
 }
 
 func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
-	err := s.Client.AppsV1().Deployments(deployment.Namespace).Delete(ctx, deployment.Name, s.Config.DeleteOptions())
+	err := s.Client.Delete(ctx, deployment)
 	if err != nil {
 		log.Errorf("Could not delete deployment %s, %v", deployment.Name, err)
 	} else {
