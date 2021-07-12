@@ -17,7 +17,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
 
       - name: Test
-        run: go test ./...
+        run: make test
 
   docker:
     name: Build and push Docker image
