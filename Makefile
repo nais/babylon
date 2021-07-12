@@ -1,4 +1,5 @@
 PHONY: all
+SHELL=/bin/bash
 .DEFAULT_GOAL := deploy-local
 
 deploy-local:
