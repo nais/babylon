@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
@@ -13,7 +14,7 @@ import (
 	"github.com/nais/babylon/pkg/service"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -38,12 +39,17 @@ func main() {
 	// TODO: perhaps timeout between each tick?
 	ctx := context.Background()
 
+	port, err := strconv.Atoi(cfg.Port)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	m := metrics.Init()
 	ctrlMetrics.Registry.MustRegister(m.PodsDeleted, m.DeploymentsDeleted)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 clientgoscheme.Scheme,
-		MetricsBindAddress:     ":8080",
-		HealthProbeBindAddress: ":8081",
+		Scheme:                 scheme.Scheme,
+		MetricsBindAddress:     fmt.Sprintf(":%d", port),
+		HealthProbeBindAddress: fmt.Sprintf(":%d", port+1),
 	})
 	if err != nil {
 		log.Fatal(err.Error())
@@ -52,7 +58,7 @@ func main() {
 	}
 
 	log.Infof("%+v", cfg)
-	log.Infof("Metrics: http://localhost:%v/m", cfg.Port)
+	log.Infof("Metrics: http://localhost:%v/metrics", cfg.Port)
 
 	c := mgr.GetClient()
 	if !cfg.Armed {
