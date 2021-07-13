@@ -56,7 +56,7 @@ jobs:
           brew install kuttl-cli
 
       - name: Run integration test
-        run: kubectl kuttl test --timeout 300
+        run: kubectl kuttl test --timeout 60
 
   deployToDev:
     name: Deploy to dev
