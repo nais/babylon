@@ -11,5 +11,5 @@ kindNodeCache: true
 artifactsDir: kuttl-logs
 reportFormat: JSON
 commands:
-  - command: kubectl wait --timeout=30s --for condition=ready nodes --all
+  - command: kubectl wait --timeout=300s --for condition=ready nodes --all
 timeout: 30
