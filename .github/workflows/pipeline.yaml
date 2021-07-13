@@ -59,7 +59,7 @@ jobs:
           docker image build --tag babylon .
 
       - name: Run integration test
-        run: kubectl kuttl test --timeout 60 --start-kind false
+        run: kubectl kuttl test --timeout=60 --start-kind=false
 
   deployToDev:
     name: Deploy to dev
