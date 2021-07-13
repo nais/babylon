@@ -46,17 +46,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
-      - name: Build
-        run: docker image build --tag babylon .
-
       - name: Install kuttl
         run: |
           brew tap kudobuilder/tap
           brew install kuttl-cli
+      - name: Start minikube
+        uses: medyagh/setup-minikube@master
+      - name: Build
+        shell: bash
+        run: |
+          eval $(minikube -p minikube docker-env)
+          docker image build --tag babylon .
 
       - name: Run integration test
-        run: kubectl kuttl test --timeout 60
+        run: kubectl kuttl test --timeout 60 --start-kind false
 
   deployToDev:
     name: Deploy to dev
