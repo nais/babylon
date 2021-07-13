@@ -17,7 +17,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
 
       - name: Test
-        run: make test
+        run: go test ./...
 
   docker:
     name: Build and push Docker image
@@ -50,16 +50,12 @@ jobs:
         run: |
           brew tap kudobuilder/tap
           brew install kuttl-cli
+
       - name: Start minikube
         uses: medyagh/setup-minikube@master
-      - name: Build
-        shell: bash
-        run: |
-          eval $(minikube -p minikube docker-env)
-          docker image build --tag babylon .
 
-      - name: Run integration test
-        run: kubectl kuttl test --timeout=60 --start-kind=false
+      - name: Build
+        run: make test
 
   deployToDev:
     name: Deploy to dev

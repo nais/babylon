@@ -45,6 +45,14 @@ For example asserting that babylon has deleted some kind of resource.
 
 ### Setup kuttl
 
+#### Automatically
+
+```shell
+$ make test
+```
+
+#### Manually
+
 ```sh
 # install packages
 $ brew tap kudobuilder/tap
@@ -57,8 +65,6 @@ $ kubectl kuttl test
 $ minikube start
 $ kubectl kuttl test --start-kind=false
 ```
-
-
 
 ### Access running application
 
