@@ -1,0 +1,13 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestSuite
+startKIND: true
+kindContainers:
+  - babylon:latest
+testDirs:
+  - tests/e2e/
+manifestDirs:
+  - tests/before/
+kindNodeCache: true
+artifactsDir: kuttl-logs
+reportFormat: JSON
+timeout: 60

@@ -41,9 +41,26 @@ jobs:
       - name: Push image
         run: docker push ${docker_image}
 
+  integrationTest:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: docker image build --tag babylon .
+
+      - name: Install kuttl
+        run: |
+          brew tap kudobuilder/tap
+          brew install kuttl-cli
+
+      - name: Run integration test
+        run: kubectl kuttl test
+
   deployToDev:
     name: Deploy to dev
-    needs: docker
+    needs: [docker, integrationTest]
     runs-on: ubuntu-latest
     if: "github.ref == 'refs/heads/main'"
 

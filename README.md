@@ -34,6 +34,15 @@ $ docker build -t babylon .
 $ kubectl apply -f minikube.yaml
 ```
 
+### Integration tests with `kuttl`
+
+We have set up integration tests using `kuttl`. The tests are found in [`tests/e2e`](tests/e2e), 
+see `kuttl`'s [documentation](https://kuttl.dev/docs/). All tests will have a running instance of babylon
+in the background, as specified in [`tests/before/babylon.yaml`](tests/before/babylon.yaml). 
+
+Tests work by specifying a cluster configuration, and then performing assertions on that configuration.
+For example asserting that babylon has deleted some kind of resource. 
+
 ### Access running application
 
 ```shell
