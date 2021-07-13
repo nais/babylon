@@ -2,14 +2,23 @@ package deployment
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"sort"
 
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/service"
+	"github.com/nais/babylon/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	ErrPatchFailed           = errors.New("failed to apply patch")
+	ErrFetchReplicasetFailed = errors.New("failed to fetch replicasets")
 )
 
 const ImagePullBackOff = "ImagePullBackOff"
@@ -62,13 +71,94 @@ func ShouldPodBeDeleted(pod *v1.Pod) bool {
 	}
 }
 
-func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
-	err := s.Client.Delete(ctx, deployment)
+func getReplicaSetsByDeployment(
+	ctx context.Context,
+	s *service.Service,
+	deployment *appsv1.Deployment) (appsv1.ReplicaSetList, error) {
+	labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
+
+	l := &client.ListOptions{LabelSelector: labelSelector.AsSelector(), Namespace: deployment.Namespace}
+	var replicaSets appsv1.ReplicaSetList
+	err := s.Client.List(ctx, &replicaSets, l)
 	if err != nil {
-		log.Errorf("Could not delete deployment %s, %v", deployment.Name, err)
-	} else {
-		log.Infof("Deleting deployment %s", deployment.Name)
-		s.Metrics.DeploymentsDeleted.Inc()
-		// s.Metrics.PodsDeleted.Add(float64(len(pods.Items)))
+		return appsv1.ReplicaSetList{}, fmt.Errorf("%w:%v", ErrFetchReplicasetFailed, err)
+	}
+
+	return replicaSets, nil
+}
+
+func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *service.Service) bool {
+	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
+	pods := &v1.PodList{}
+	err := s.Client.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
+	if err != nil {
+		log.Errorf("finding pods for replicaSet %s failed", rs.Name)
+
+		return false
+	}
+	failedPods := 0
+	for i := range pods.Items {
+		if ShouldPodBeDeleted(&pods.Items[i]) {
+			failedPods++
+		}
+	}
+	log.Infof("%d/%d failing pods in replicaset %s", failedPods, len(pods.Items), rs.Name)
+
+	return failedPods == len(pods.Items)
+}
+
+func RollbackDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
+	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
+	if err != nil {
+		return err
+	}
+	// 0 replicaSets assumed to not be possible
+	if len(rs.Items) == 1 {
+		log.Infof("Deployment %s has only 1 replicaset", deployment.Name)
+		patch := client.MergeFrom(deployment.DeepCopy())
+		deployment.Spec.Replicas = utils.Int32ptr(0)
+		err := s.Client.Patch(ctx, deployment, patch)
+		if err != nil {
+			return fmt.Errorf("failed to apply patch: %w", err)
+		}
+
+		return nil
+	}
+	// Most recent replicaSet assumed to be at index = 1
+	log.Infof("Rolling back deployment %s to previous revision", deployment.Name)
+
+	sort.Slice(rs.Items, func(i, j int) bool {
+		return rs.Items[i].Annotations["deployment.kubernetes.io/revision"] >
+			rs.Items[j].Annotations["deployment.kubernetes.io/revision"]
+	})
+	desiredReplicaSet := rs.Items[1]
+	desiredReplicaSet.Spec.Replicas = utils.Int32ptr(0)
+	patch := client.MergeFrom(deployment.DeepCopy())
+	deployment.Spec.Template.Spec = desiredReplicaSet.Spec.Template.Spec
+	err = s.Client.Patch(ctx, deployment, patch)
+	if err != nil {
+		log.Errorf("Failed to patch deployment: %+v", err)
+
+		return ErrPatchFailed
+	}
+
+	return nil
+}
+
+func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
+	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
+	if err != nil {
+		log.Errorf("Could not get replicaSet for deployment %s, %v", deployment.Name, err)
+	}
+	log.Infof("Checking deployment: %s", deployment.Name)
+	for i := range rs.Items {
+		if allPodsFailingInReplicaSet(ctx, &rs.Items[i], s) {
+			err := RollbackDeployment(ctx, s, deployment)
+			if err != nil {
+				log.Errorf("Rollback failed: %+v", err)
+			}
+
+			return
+		}
 	}
 }
