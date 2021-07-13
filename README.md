@@ -40,6 +40,17 @@ We have set up integration tests using `kuttl`. The tests are found in [`tests/e
 see `kuttl`'s [documentation](https://kuttl.dev/docs/). All tests will have a running instance of babylon
 in the background, as specified in [`tests/before/babylon.yaml`](tests/before/babylon.yaml). 
 
+### Setup kuttl
+
+```sh
+# install packages
+$ brew tap kudobuilder/tap
+$ brew install kuttl-cli
+
+# run tests from root
+$ kubectl kuttl test
+```
+
 Tests work by specifying a cluster configuration, and then performing assertions on that configuration.
 For example asserting that babylon has deleted some kind of resource. 
 
