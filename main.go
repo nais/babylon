@@ -45,7 +45,7 @@ func main() {
 	}
 
 	m := metrics.Init()
-	ctrlMetrics.Registry.MustRegister(m.PodsDeleted, m.DeploymentsDownscaled)
+	ctrlMetrics.Registry.MustRegister(m.PodsDeleted, m.DeploymentRollbacks)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme.Scheme,
 		MetricsBindAddress:     fmt.Sprintf(":%d", port),

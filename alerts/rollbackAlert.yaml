@@ -1,0 +1,24 @@
+apiVersion: "nais.io/v1"
+kind: "Alert"
+metadata:
+  name: babylon-alerter
+  namespace: babylon
+  labels:
+    team: babylon
+spec:
+  receivers: # receivers for all alerts below
+    slack:
+      channel: '#babylon-alerts'
+      icon_emoji: ':farmer:'
+      send_resolved: false
+      username: Babylon - Testing
+  alerts:
+    - alert: Deployment {{ $labels.deployment }} rollbacked
+      expr: 'increase(babylon_deployment_rollbacks_total[5m]) > 1'
+      for: 0s
+      action: |
+        Read app logs (kubectl logs appname).
+        Read Application events (kubectl describe deployment appname)
+      description: Babylon rolled back {{ $labels.deployment }} due to it failing with error `ImagePullBackOff`
+      documentation: https://github.com/nais/babylon/README.md
+      severity: warning

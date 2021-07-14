@@ -183,7 +183,7 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 				team = "unknown"
 			}
 
-			metric, err := s.Metrics.DeploymentsDownscaled.GetMetricWithLabelValues(deployment.Name, team)
+			metric, err := s.Metrics.DeploymentRollbacks.GetMetricWithLabelValues(deployment.Name, team)
 			if err != nil {
 				log.Errorf("Metric failed: %+v", err)
 
