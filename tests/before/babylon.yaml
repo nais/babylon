@@ -27,6 +27,8 @@ spec:
           env:
             - name: ARMED
               value: "true"
+            - name: LINKERD_DISABLED
+              value: "true"
           image: babylon
           ports:
             - containerPort: 8080
@@ -46,8 +48,6 @@ rules:
       - ""
       - "apps"
     resources:
-      - "services"
-      - "endpoints"
       - "pods"
       - "deployments"
       - "replicasets"

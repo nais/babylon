@@ -12,4 +12,6 @@ artifactsDir: kuttl-logs
 reportFormat: JSON
 commands:
   - command: kubectl wait --timeout=60s --for condition=ready nodes --all
+  # TODO: sleep here does not work and the resources are created to quickly before this, race conditions :)
+  # - command: kubectl wait --timeout=60s --for condition=ready pod -l app=babylon
 timeout: 60
