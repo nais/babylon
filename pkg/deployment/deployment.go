@@ -100,6 +100,10 @@ func getReplicaSetsByDeployment(
 }
 
 func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *service.Service) bool {
+	if *rs.Spec.Replicas == 0 {
+		return false
+	}
+
 	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
 	pods := &v1.PodList{}
 	err := s.Client.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
