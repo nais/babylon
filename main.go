@@ -52,7 +52,7 @@ func main() {
 		HealthProbeBindAddress: fmt.Sprintf(":%d", port+1),
 	})
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatalf("error creating manager: %v", err)
 
 		return
 	}
@@ -70,13 +70,13 @@ func main() {
 
 	s := service.Service{Config: &cfg, Client: c, Metrics: &m}
 
-	log.Info("starting gardener")
 	go gardener(ctx, &s)
 
 	log.Fatal(mgr.Start(ctx))
 }
 
 func gardener(ctx context.Context, service *service.Service) {
+	log.Info("starting gardener")
 	ticker := time.Tick(service.Config.TickRate)
 
 	for {
