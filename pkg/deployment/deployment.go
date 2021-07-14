@@ -21,7 +21,10 @@ var (
 	ErrFetchReplicasetFailed = errors.New("failed to fetch replicasets")
 )
 
-const ImagePullBackOff = "ImagePullBackOff"
+const (
+	ImagePullBackOff = "ImagePullBackOff"
+	ErrImagePull     = "ErrImagePull"
+)
 
 func GetFailingDeployments(
 	ctx context.Context,
@@ -47,6 +50,17 @@ func GetFailingDeployments(
 	return fails
 }
 
+func containerImageCheckFail(containers []v1.ContainerStatus) bool {
+	for _, containerStatus := range containers {
+		waiting := containerStatus.State.Waiting
+		if waiting != nil && (waiting.Reason == ImagePullBackOff || waiting.Reason == ErrImagePull) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func ShouldPodBeDeleted(pod *v1.Pod) bool {
 	switch {
 	case pod.Status.Phase == v1.PodRunning:
@@ -54,11 +68,8 @@ func ShouldPodBeDeleted(pod *v1.Pod) bool {
 	case pod.Status.Phase == v1.PodSucceeded:
 		return false
 	case pod.Status.Phase == v1.PodPending:
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			waiting := containerStatus.State.Waiting
-			if waiting != nil && waiting.Reason == ImagePullBackOff {
-				return true
-			}
+		if containerImageCheckFail(pod.Status.ContainerStatuses) {
+			return true
 		}
 
 		return false
@@ -141,6 +152,8 @@ func RollbackDeployment(ctx context.Context, s *service.Service, deployment *app
 
 		return ErrPatchFailed
 	}
+	log.Infof("Rolled back deployment %s to revision: %s",
+		deployment.Name, desiredReplicaSet.Annotations["deployment.kubernetes.io/revision"])
 
 	return nil
 }
