@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: failingcont
+  labels:
+    app: failingcont
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: failingcont
+  template:
+    metadata:
+      labels:
+        app: failingcont
+    spec:
+      containers:
+        - name: failingcont
+          image: busybox
+          volumeMounts:
+            - name: config-vol
+              mountPath: /etc/config
+      volumes:
+        - name: config-vol
