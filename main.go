@@ -68,7 +68,7 @@ func main() {
 		log.Info("Armed and dangerous! 🪖")
 	}
 
-	s := service.Service{Config: &cfg, Client: c, Metrics: &m}
+	s := service.Service{Config: &cfg, Client: c, Metrics: &m, PruneHistory: make(map[string]time.Time)}
 
 	go gardener(ctx, &s)
 
