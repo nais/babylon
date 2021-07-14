@@ -25,4 +25,4 @@ test: ## Run tests.
 	@eval $$(minikube docker-env --shell=bash); \
 	$(MAKE) docker-build; \
 	go test ./...; \
-	kubectl kuttl test --timeout=120 --start-kind=false
+	kubectl kuttl test --timeout=60 --start-kind=false
