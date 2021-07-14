@@ -66,7 +66,8 @@ jobs:
 
   deployToDev:
     name: Deploy to dev
-    needs: [docker, integrationTest]
+    needs:
+      - docker
     runs-on: ubuntu-latest
     if: "github.ref == 'refs/heads/main'"
 

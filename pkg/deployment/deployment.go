@@ -169,9 +169,22 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 			err := RollbackDeployment(ctx, s, deployment)
 			if err != nil {
 				log.Errorf("Rollback failed: %+v", err)
+
+				continue
+			}
+			team, ok := deployment.Labels["team"]
+
+			if !ok {
+				team = "unknown"
 			}
 
-			return
+			metric, err := s.Metrics.DeploymentsDownscaled.GetMetricWithLabelValues(deployment.Name, team)
+			if err != nil {
+				log.Errorf("Metric failed: %+v", err)
+
+				continue
+			}
+			metric.Inc()
 		}
 	}
 }

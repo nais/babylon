@@ -14,16 +14,6 @@ spec:
       value: "{{port}}"
     - name: ARMED
       value: "{{armed}}"
-  liveness:
-    path: "/healthz"
-    port: 8081
-    initialDelay: 20
-    timeout: 60
-  readiness:
-    path: "/readyz"
-    port: 8081
-    initialDelay: 20
-    timeout: 60
   replicas:
     min: 1
     max: 1

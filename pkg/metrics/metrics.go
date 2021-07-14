@@ -6,8 +6,8 @@ import (
 )
 
 type Metrics struct {
-	PodsDeleted        prometheus.Counter
-	DeploymentsDeleted prometheus.Counter
+	PodsDeleted           prometheus.Counter
+	DeploymentsDownscaled *prometheus.CounterVec
 }
 
 func Init() Metrics {
@@ -16,9 +16,9 @@ func Init() Metrics {
 			Name: "babylon_pods_deleted_total",
 			Help: "Number of pods deleted in total",
 		}),
-		DeploymentsDeleted: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "babylon_deployments_deleted_total",
-			Help: "Number of deployments deleted in total",
-		}),
+		DeploymentsDownscaled: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "babylon_deployments_downscaled_total",
+			Help: "Deployments downscaled",
+		}, []string{"deployment", "team"}),
 	}
 }
