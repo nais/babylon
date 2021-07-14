@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/service"
@@ -185,6 +186,8 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 				continue
 			}
 			metric.Inc()
+			name := deployment.Namespace + deployment.Name
+			s.PruneHistory[name] = time.Now()
 		}
 	}
 }

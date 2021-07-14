@@ -75,20 +75,25 @@ func main() {
 	log.Fatal(mgr.Start(ctx))
 }
 
-func gardener(ctx context.Context, service *service.Service) {
+func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
-	ticker := time.Tick(service.Config.TickRate)
+	ticker := time.Tick(s.Config.TickRate)
 
 	for {
 		<-ticker
 		deployments := &appsv1.DeploymentList{}
-		err := service.Client.List(ctx, deployments)
+		err := s.Client.List(ctx, deployments)
 		if logger2.Logk8sError(err) {
 			continue
 		}
-		deploymentFails := deployment.GetFailingDeployments(ctx, service, deployments)
+		deploymentFails := deployment.GetFailingDeployments(ctx, s, deployments)
 		for _, deploy := range deploymentFails {
-			deployment.PruneFailingDeployment(ctx, service, deploy)
+			name := deploy.Namespace + deploy.Name
+			if time.Since(s.PruneHistory[name]) < time.Minute*5 {
+				continue
+			}
+
+			deployment.PruneFailingDeployment(ctx, s, deploy)
 		}
 	}
 }
