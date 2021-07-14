@@ -10,6 +10,7 @@ linters:
      - wsl
      - interfacer
      - godox
+     - gomnd
 
 service:
   golangci-lint-version: 1.41.x

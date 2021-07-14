@@ -26,9 +26,13 @@ func main() {
 	flag.StringVar(&cfg.LogLevel, "log-level", config.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
 	flag.BoolVar(&cfg.Armed, "armed", isArmed, "whether to start destruction")
 	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
-	var tickrate string
 
+	var tickrate string
 	flag.StringVar(&tickrate, "timeout", config.GetEnv("TICKRATE", "5s"), "tickrate of main loop")
+
+	restartThreshold := config.GetEnv("RESTART_THRESHOLD", cfg.RestartThreshold)
+	flag.StringVar(&cfg.RestartThreshold, "restart-threshold", restartThreshold, "set restart threshold")
+
 	flag.Parse()
 	duration, err := time.ParseDuration(tickrate)
 	if err == nil {

@@ -4,3 +4,4 @@ ingresses:
 log_level: "info"
 port: "8080"
 armed: "false"
+restart_threshold: "200"

@@ -29,6 +29,8 @@ spec:
               value: "true"
             - name: LINKERD_DISABLED
               value: "true"
+            - name: RESTART_THRESHOLD
+              value: "1"
           image: babylon
           ports:
             - containerPort: 8080

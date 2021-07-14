@@ -14,6 +14,8 @@ spec:
       value: "{{port}}"
     - name: ARMED
       value: "{{armed}}"
+    - name: RESTART_THRESHOLD
+      value: "{{restart_threshold}}"
   replicas:
     min: 1
     max: 1

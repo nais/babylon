@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/service"
 	"github.com/nais/babylon/pkg/utils"
@@ -25,6 +26,7 @@ var (
 const (
 	ImagePullBackOff = "ImagePullBackOff"
 	ErrImagePull     = "ErrImagePull"
+	CrashLoopBackOff = "CrashLoopBackOff"
 )
 
 func GetFailingDeployments(
@@ -42,7 +44,7 @@ func GetFailingDeployments(
 
 		for j, pod := range pods.Items {
 			log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
-			if ShouldPodBeDeleted(&pods.Items[j]) {
+			if ShouldPodBeDeleted(s.Config, &pods.Items[j]) {
 				fails = append(fails, &deployments.Items[i])
 			}
 		}
@@ -62,21 +64,46 @@ func containerImageCheckFail(containers []v1.ContainerStatus) bool {
 	return false
 }
 
-func ShouldPodBeDeleted(pod *v1.Pod) bool {
+func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerStatus) bool {
+	for _, container := range containers {
+		waiting := container.State.Waiting
+		log.Debugf("Waiting: %+v", waiting)
+
+		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > config.GetRestartThreshold() {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) bool {
 	switch {
 	case pod.Status.Phase == v1.PodRunning:
+		log.Debugf("Pod: %s running", pod.Name)
+		if containerCrashLoopBackOff(config, pod.Status.ContainerStatuses) {
+			return true
+		}
+
 		return false
 	case pod.Status.Phase == v1.PodSucceeded:
+		log.Debugf("Pod: %s succeeded", pod.Name)
+
 		return false
 	case pod.Status.Phase == v1.PodPending:
+		log.Debugf("Pod: %s pending", pod.Name)
 		if containerImageCheckFail(pod.Status.ContainerStatuses) {
 			return true
 		}
 
 		return false
 	case pod.Status.Phase == v1.PodFailed:
+		log.Debugf("Pod: %s failed", pod.Name)
+
 		return false // should be true?
 	case pod.Status.Phase == v1.PodUnknown:
+		log.Debugf("Pod: %s unknown", pod.Name)
+
 		return false
 	default:
 		return false
@@ -114,7 +141,7 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 	}
 	failedPods := 0
 	for i := range pods.Items {
-		if ShouldPodBeDeleted(&pods.Items[i]) {
+		if ShouldPodBeDeleted(s.Config, &pods.Items[i]) {
 			failedPods++
 		}
 	}
