@@ -31,3 +31,24 @@ spec:
     {{#each ingresses as |url|}}
        - {{url}}
       {{/each}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app: babylon
+    team: babylon
+  name: babylon-apiserver
+  namespace: babylon
+spec:
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.64.1/32
+        - ipBlock:
+            cidr: 172.16.0.2/32
+  podSelector:
+    matchLabels:
+      app: babylon
+  policyTypes:
+    - Egress
