@@ -13,7 +13,7 @@ spec:
       send_resolved: false
       username: Babylon - Testing
   alerts:
-    - alert: Deployment {{ $labels.deployment }} rollbacked
+    - alert: Deployment {{ $labels.deployment }} rolled back
       expr: 'increase(babylon_deployment_rollbacks_total[5m]) > 1'
       for: 0s
       action: |
