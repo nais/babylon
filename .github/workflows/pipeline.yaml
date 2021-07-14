@@ -57,6 +57,13 @@ jobs:
       - name: Build
         run: make test
 
+      - uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: integration-testing-logs-${{ github.sha}}
+          path: kuttl-logs/
+
+
   deployToDev:
     name: Deploy to dev
     needs: [docker, integrationTest]
