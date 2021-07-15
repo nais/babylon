@@ -52,7 +52,7 @@ jobs:
           brew install kuttl-cli
 
       - name: Start minikube
-        run: minikube start
+        run: minikube start --wait=all
 
       - name: Build Docker Image
         run: |
@@ -77,7 +77,7 @@ jobs:
     name: Deploy to dev
     needs:
       - docker
-      - integrationTest
+      # - integrationTest
     runs-on: ubuntu-latest
     if: "github.ref == 'refs/heads/main'"
 

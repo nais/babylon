@@ -13,12 +13,12 @@ spec:
       send_resolved: false
       username: Babylon - Testing
   alerts:
-    - alert: Deployment {{ $labels.deployment }} rolled back
+    - alert: Deployment \{{ $labels.deployment }} rolled back
       expr: 'increase(babylon_deployment_rollbacks_total[5m]) > 1'
       for: 0s
       action: |
         Read app logs (kubectl logs appname).
         Read Application events (kubectl describe deployment appname)
-      description: Babylon rolled back {{ $labels.deployment }} due to it failing with error `ImagePullBackOff`
+      description: Babylon rolled back \{{ $labels.deployment }} due to it failing with error `ImagePullBackOff`
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
