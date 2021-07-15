@@ -1,9 +1,7 @@
 package config
 
 import (
-	"fmt"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -18,7 +16,7 @@ type Config struct {
 	LogLevel         string
 	Port             string
 	TickRate         time.Duration
-	RestartThreshold string
+	RestartThreshold int32
 	ResourceAge      time.Duration
 }
 
@@ -28,18 +26,9 @@ func DefaultConfig() Config {
 		Port:             "8080",
 		Armed:            false,
 		TickRate:         DefaultTickRate,
-		RestartThreshold: fmt.Sprintf("%d", DefaultRestartThreshold),
+		RestartThreshold: DefaultRestartThreshold,
 		ResourceAge:      DefaultAge,
 	}
-}
-
-func (c *Config) GetRestartThreshold() int32 {
-	num, err := strconv.ParseInt(c.RestartThreshold, 10, 32)
-	if err != nil {
-		return DefaultRestartThreshold
-	}
-
-	return int32(num)
 }
 
 func GetEnv(name, fallback string) string {

@@ -73,7 +73,7 @@ func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerS
 			log.Debugf("Waiting: %+v", waiting)
 		}
 
-		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > config.GetRestartThreshold() {
+		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > config.RestartThreshold {
 			return true
 		}
 	}

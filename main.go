@@ -31,8 +31,9 @@ func main() {
 	var tickrate string
 	flag.StringVar(&tickrate, "timeout", config.GetEnv("TICKRATE", "5s"), "tickrate of main loop")
 
-	restartThreshold := config.GetEnv("RESTART_THRESHOLD", cfg.RestartThreshold)
-	flag.StringVar(&cfg.RestartThreshold, "restart-threshold", restartThreshold, "set restart threshold")
+	var restartThreshold string
+	defaultRestartThreshold := config.GetEnv("RESTART_THRESHOLD", fmt.Sprintf("%d", cfg.RestartThreshold))
+	flag.StringVar(&restartThreshold, "restart-threshold", defaultRestartThreshold, "set restart threshold")
 
 	var resourceAge string
 	flag.StringVar(&resourceAge, "resource-age", config.GetEnv("RESOURCE_AGE", "10m"),
@@ -46,6 +47,11 @@ func main() {
 	age, err := time.ParseDuration(resourceAge)
 	if err == nil {
 		cfg.ResourceAge = age
+	}
+
+	rt, err := strconv.ParseInt(restartThreshold, 10, 32)
+	if err == nil {
+		cfg.RestartThreshold = int32(rt)
 	}
 	logger2.Setup(cfg.LogLevel)
 
