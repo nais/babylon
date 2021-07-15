@@ -20,8 +20,7 @@ import (
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-//nolint:funlen
-func main() {
+func parseFlags() config.Config {
 	cfg := config.DefaultConfig()
 	isArmed := config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
 	flag.StringVar(&cfg.LogLevel, "log-level", config.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
@@ -53,6 +52,12 @@ func main() {
 	if err == nil {
 		cfg.RestartThreshold = int32(rt)
 	}
+
+	return cfg
+}
+
+func main() {
+	cfg := parseFlags()
 	logger2.Setup(cfg.LogLevel)
 
 	// TODO: perhaps timeout between each tick?
