@@ -60,7 +60,7 @@ jobs:
           docker build -t babylon .
 
       - name: Run Integration Test
-        run: kubectl kuttl test --timeout=30 --start-kind=false
+        run: kubectl kuttl test --timeout=120 --start-kind=false
 
       - name: Debug Test
         if: ${{ failure() }}
