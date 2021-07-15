@@ -1,7 +1,6 @@
 package deployment_test
 
 import (
-	"fmt"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/deployment"
 	v1 "k8s.io/api/core/v1"
@@ -72,7 +71,7 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 			t.Parallel()
 			cfg := config.DefaultConfig()
 			pod := createPod(tt.State, tt.RestartCount)
-			cfg.RestartThreshold = fmt.Sprintf("%d", tt.RestartThreshold)
+			cfg.RestartThreshold = tt.RestartThreshold
 			res := deployment.ShouldPodBeDeleted(&cfg, &pod)
 
 			if res != tt.Expected {
