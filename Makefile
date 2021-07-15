@@ -6,8 +6,8 @@ deploy-local:
 	if [ "$(shell minikube status | grep host | rev | cut -d' ' -f1 | rev)" == "Stopped" ]; then minikube start; fi
 	# apply minikube docker variables and build image
 	@eval $$(minikube docker-env --shell=bash); \
-	$(MAKE) docker-build; \
-	kubectl delete -f minikube.yaml; \
+	$(MAKE) docker-build
+	kubectl delete -f minikube.yaml
 	kubectl apply -f minikube.yaml
 
 docker-build:
@@ -23,6 +23,6 @@ test: ## Run tests.
 	if [ "$(shell minikube status | grep host | rev | cut -d' ' -f1 | rev)" == "Stopped" ]; then minikube start; fi
 	# apply minikube docker variables and build image
 	@eval $$(minikube docker-env --shell=bash); \
-	$(MAKE) docker-build; \
-	go test ./...; \
+	$(MAKE) docker-build
+	go test ./...
 	kubectl kuttl test --timeout=60 --start-kind=false
