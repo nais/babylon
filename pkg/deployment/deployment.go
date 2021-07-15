@@ -43,7 +43,9 @@ func GetFailingDeployments(
 		}
 
 		for j, pod := range pods.Items {
-			log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
+			if pod.Status.Reason != "" {
+				log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
+			}
 			if ShouldPodBeDeleted(s.Config, &pods.Items[j]) {
 				fails = append(fails, &deployments.Items[i])
 			}
@@ -67,7 +69,9 @@ func containerImageCheckFail(containers []v1.ContainerStatus) bool {
 func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerStatus) bool {
 	for _, container := range containers {
 		waiting := container.State.Waiting
-		log.Debugf("Waiting: %+v", waiting)
+		if waiting != nil {
+			log.Debugf("Waiting: %+v", waiting)
+		}
 
 		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > config.GetRestartThreshold() {
 			return true
@@ -196,7 +200,15 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 		log.Errorf("Could not get replicaSet for deployment %s, %v", deployment.Name, err)
 	}
 	log.Infof("Checking deployment: %s", deployment.Name)
-	for i := range rs.Items {
+
+	checkTime := time.Now()
+	ageBarrier := checkTime.Add(-s.Config.ResourceAge)
+	for i, r := range rs.Items {
+		if r.CreationTimestamp.After(ageBarrier) {
+			log.Infof("deployment %s too young, skipping (%v)", r.Name, r.CreationTimestamp)
+
+			continue
+		}
 		if allPodsFailingInReplicaSet(ctx, &rs.Items[i], s) {
 			err := RollbackDeployment(ctx, s, deployment)
 			if err != nil {

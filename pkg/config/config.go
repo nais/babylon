@@ -10,6 +10,7 @@ import (
 const (
 	DefaultTickRate         = 5 * time.Second
 	DefaultRestartThreshold = 200
+	DefaultAge              = 10 * time.Minute
 )
 
 type Config struct {
@@ -18,6 +19,7 @@ type Config struct {
 	Port             string
 	TickRate         time.Duration
 	RestartThreshold string
+	ResourceAge      time.Duration
 }
 
 func DefaultConfig() Config {
@@ -27,6 +29,7 @@ func DefaultConfig() Config {
 		Armed:            false,
 		TickRate:         DefaultTickRate,
 		RestartThreshold: fmt.Sprintf("%d", DefaultRestartThreshold),
+		ResourceAge:      DefaultAge,
 	}
 }
 

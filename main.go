@@ -20,6 +20,7 @@ import (
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
+//nolint:funlen
 func main() {
 	cfg := config.DefaultConfig()
 	isArmed := config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
@@ -33,10 +34,18 @@ func main() {
 	restartThreshold := config.GetEnv("RESTART_THRESHOLD", cfg.RestartThreshold)
 	flag.StringVar(&cfg.RestartThreshold, "restart-threshold", restartThreshold, "set restart threshold")
 
+	var resourceAge string
+	flag.StringVar(&resourceAge, "resource-age", config.GetEnv("RESOURCE_AGE", "10m"),
+		"resource age needed before rollback")
+
 	flag.Parse()
 	duration, err := time.ParseDuration(tickrate)
 	if err == nil {
 		cfg.TickRate = duration
+	}
+	age, err := time.ParseDuration(resourceAge)
+	if err == nil {
+		cfg.ResourceAge = age
 	}
 	logger2.Setup(cfg.LogLevel)
 

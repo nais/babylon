@@ -31,6 +31,8 @@ spec:
               value: "true"
             - name: RESTART_THRESHOLD
               value: "1"
+            - name: RESOURCE_AGE
+              value: "10s"
           image: babylon
           ports:
             - containerPort: 8080

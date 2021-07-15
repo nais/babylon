@@ -16,6 +16,8 @@ spec:
       value: "{{armed}}"
     - name: RESTART_THRESHOLD
       value: "{{restart_threshold}}"
+    - name: RESOURCE_AGE
+      value: "{{resource_age}}"
   replicas:
     min: 1
     max: 1

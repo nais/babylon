@@ -27,6 +27,8 @@ spec:
               value: "true"
             - name: LOG_LEVEL
               value: "debug"
+            - name: RESOURCE_AGE
+              value: "1m"
           image: babylon
           ports:
             - containerPort: 8080
