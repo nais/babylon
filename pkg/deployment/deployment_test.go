@@ -33,6 +33,7 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 		RestartCount     int32
 		RestartThreshold int32
 		Expected         bool
+		ExpectedReason   string
 	}{
 		{
 			Name: "CrashLoopBackOff with enough restarts",
@@ -44,6 +45,7 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 			RestartCount:     1000,
 			RestartThreshold: 500,
 			Expected:         true,
+			ExpectedReason:   deployment.CrashLoopBackOff,
 		},
 		{
 			Name: "CrashLoopBackOff with not enough restarts",
@@ -55,6 +57,7 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 			RestartCount:     100,
 			RestartThreshold: 500,
 			Expected:         false,
+			ExpectedReason:   "",
 		},
 		{
 			Name:             "No mark for deletion",
@@ -62,6 +65,7 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 			RestartCount:     0,
 			RestartThreshold: 500,
 			Expected:         false,
+			ExpectedReason:   "",
 		},
 	}
 
@@ -72,10 +76,10 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 			cfg := config.DefaultConfig()
 			pod := createPod(tt.State, tt.RestartCount)
 			cfg.RestartThreshold = tt.RestartThreshold
-			res := deployment.ShouldPodBeDeleted(&cfg, &pod)
+			res, reason := deployment.ShouldPodBeDeleted(&cfg, &pod)
 
-			if res != tt.Expected {
-				t.Fatalf("Expected pod to be marked for deletion: %v, got: %v, pod: %+v", tt.Expected, res, pod)
+			if res != tt.Expected || reason != tt.ExpectedReason {
+				t.Fatalf("Expected pod to be marked for deletion: %v, with reason %v, got result: %v, with reason %v, pod: %+v", tt.Expected, tt.ExpectedReason, res, reason, pod)
 			}
 		})
 	}
@@ -94,10 +98,11 @@ func TestContainersWithImageCheckFailed(t *testing.T) {
 	}
 
 	shouldBeDeletedTest := []struct {
-		Name     string
-		State    v1.ContainerState
-		Phase    v1.PodPhase
-		Expected bool
+		Name           string
+		State          v1.ContainerState
+		Phase          v1.PodPhase
+		Expected       bool
+		ExpectedReason string
 	}{
 		{
 			Name: "ImagePullBackOff marks for deletion",
@@ -106,14 +111,16 @@ func TestContainersWithImageCheckFailed(t *testing.T) {
 					Reason: deployment.ImagePullBackOff,
 				},
 			},
-			Phase:    v1.PodPending,
-			Expected: true,
+			Phase:          v1.PodPending,
+			Expected:       true,
+			ExpectedReason: deployment.ImagePullBackOff,
 		},
 		{
-			Name:     "No mark for deletion",
-			State:    v1.ContainerState{},
-			Phase:    v1.PodRunning,
-			Expected: false,
+			Name:           "No mark for deletion",
+			State:          v1.ContainerState{},
+			Phase:          v1.PodRunning,
+			Expected:       false,
+			ExpectedReason: "",
 		},
 	}
 
@@ -122,10 +129,10 @@ func TestContainersWithImageCheckFailed(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			pod := createPod(tt.State, tt.Phase)
-			res := deployment.ShouldPodBeDeleted(nil, &pod)
+			res, reason := deployment.ShouldPodBeDeleted(nil, &pod)
 
-			if res != tt.Expected {
-				t.Fatalf("Expected pod to be marked for deletion: %v, got: %v, pod: %+v", tt.Expected, res, pod)
+			if res != tt.Expected || reason != tt.ExpectedReason {
+				t.Fatalf("Expected pod to be marked for deletion: %v, with reason %v, got result: %v, with reason %v, pod: %+v", tt.Expected, tt.ExpectedReason, res, reason, pod)
 			}
 		})
 	}

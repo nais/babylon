@@ -114,6 +114,7 @@ func gardener(ctx context.Context, s *service.Service) {
 		for _, deploy := range deploymentFails {
 			name := deploy.Namespace + deploy.Name
 			if time.Since(s.PruneHistory[name]) < time.Minute*5 {
+				// TODO: use annotation instead of in-memory map
 				continue
 			}
 

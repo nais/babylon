@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
-	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/service"
 	"github.com/nais/babylon/pkg/utils"
 	log "github.com/sirupsen/logrus"
@@ -35,20 +34,29 @@ func GetFailingDeployments(
 	s *service.Service,
 	deployments *appsv1.DeploymentList) []*appsv1.Deployment {
 	var fails []*appsv1.Deployment
+	checkTime := time.Now()
+	ageBarrier := checkTime.Add(-s.Config.ResourceAge)
+
+DEPLOYMENTS:
 	for i, deployment := range deployments.Items {
-		labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
-		pods := &v1.PodList{}
-		err := s.Client.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
-		if logger.Logk8sError(err) {
+		rs, err := getReplicaSetsByDeployment(ctx, s, &deployments.Items[i])
+		if err != nil {
+			log.Errorf("Could not get replicaSet for deployment %s, %v", deployment.Name, err)
+
 			continue
 		}
+		log.Infof("Checking deployment: %s", deployment.Name)
 
-		for j, pod := range pods.Items {
-			if pod.Status.Reason != "" {
-				log.Debugf("%s: %s (%s)", pod.Name, pod.Status.Reason, pod.Status.Message)
+		for j, r := range rs.Items {
+			if r.CreationTimestamp.After(ageBarrier) {
+				log.Infof("deployment %s too young, skipping (%v)", r.Name, r.CreationTimestamp)
+
+				continue
 			}
-			if ShouldPodBeDeleted(s.Config, &pods.Items[j]) {
+			if allPodsFailingInReplicaSet(ctx, &rs.Items[j], s) {
 				fails = append(fails, &deployments.Items[i])
+
+				continue DEPLOYMENTS
 			}
 		}
 	}
@@ -99,39 +107,39 @@ func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerS
 	return false
 }
 
-func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) bool {
+func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
 	switch {
 	case pod.Status.Phase == v1.PodRunning:
 		log.Debugf("Pod: %s running", pod.Name)
 		if containerCrashLoopBackOff(config, pod.Status.ContainerStatuses) {
-			return true
+			return true, CrashLoopBackOff
 		}
 
-		return false
+		return false, ""
 	case pod.Status.Phase == v1.PodSucceeded:
 		log.Debugf("Pod: %s succeeded", pod.Name)
 
-		return false
+		return false, ""
 	case pod.Status.Phase == v1.PodPending:
 		log.Debugf("Pod: %s pending", pod.Name)
 		if containerImageCheckFail(pod.Status.ContainerStatuses) {
-			return true
+			return true, ImagePullBackOff
 		}
 		if createContainerConfigError(pod.Status.ContainerStatuses) {
-			return true
+			return true, CreateContainerConfigError
 		}
 
-		return false
+		return false, ""
 	case pod.Status.Phase == v1.PodFailed:
 		log.Debugf("Pod: %s failed", pod.Name)
 
-		return false // should be true?
+		return false, "" // should be true?
 	case pod.Status.Phase == v1.PodUnknown:
 		log.Debugf("Pod: %s unknown", pod.Name)
 
-		return false
+		return false, ""
 	default:
-		return false
+		return false, ""
 	}
 }
 
@@ -166,8 +174,9 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 	}
 	failedPods := 0
 	for i := range pods.Items {
-		if ShouldPodBeDeleted(s.Config, &pods.Items[i]) {
+		if fail, reason := ShouldPodBeDeleted(s.Config, &pods.Items[i]); fail {
 			failedPods++
+			s.Metrics.IncRuleActivations(rs, reason)
 		}
 	}
 	log.Infof("%d/%d failing pods in replicaset %s", failedPods, len(pods.Items), rs.Name)
@@ -216,42 +225,13 @@ func RollbackDeployment(ctx context.Context, s *service.Service, deployment *app
 }
 
 func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
-	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
+	err := RollbackDeployment(ctx, s, deployment)
 	if err != nil {
-		log.Errorf("Could not get replicaSet for deployment %s, %v", deployment.Name, err)
+		log.Errorf("Rollback failed: %+v", err)
+
+		return
 	}
-	log.Infof("Checking deployment: %s", deployment.Name)
-
-	checkTime := time.Now()
-	ageBarrier := checkTime.Add(-s.Config.ResourceAge)
-	for i, r := range rs.Items {
-		if r.CreationTimestamp.After(ageBarrier) {
-			log.Infof("deployment %s too young, skipping (%v)", r.Name, r.CreationTimestamp)
-
-			continue
-		}
-		if allPodsFailingInReplicaSet(ctx, &rs.Items[i], s) {
-			err := RollbackDeployment(ctx, s, deployment)
-			if err != nil {
-				log.Errorf("Rollback failed: %+v", err)
-
-				continue
-			}
-			team, ok := deployment.Labels["team"]
-
-			if !ok {
-				team = "unknown"
-			}
-
-			metric, err := s.Metrics.DeploymentRollbacks.GetMetricWithLabelValues(deployment.Name, team)
-			if err != nil {
-				log.Errorf("Metric failed: %+v", err)
-
-				continue
-			}
-			metric.Inc()
-			name := deployment.Namespace + deployment.Name
-			s.PruneHistory[name] = time.Now()
-		}
-	}
+	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed)
+	name := deployment.Namespace + deployment.Name
+	s.PruneHistory[name] = time.Now()
 }
