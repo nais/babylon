@@ -5,13 +5,6 @@
 By default, the application will not perform destructive actions. To arm it, either set the `-armed`-flag 
 or set the `ARMED` 💥 environment variable to true. 
 
-## Milestones
-
-- [ ] Deploy app on NAIS
-- [ ] Fetch a K8s resource
-- [ ] Delete a K8s resource  
-- [ ] Define criteria for service deletion
-- [ ] Send slack message to the creators of application
 
 ## Using `make`
 
