@@ -22,13 +22,13 @@ spec:
             - name: ARMED
               value: "true"
             - name: RESTART_THRESHOLD
-              value: "5"
+              value: "3"
             - name: LINKERD_DISABLED
               value: "true"
             - name: LOG_LEVEL
               value: "debug"
             - name: RESOURCE_AGE
-              value: "1m"
+              value: "60s"
           image: babylon
           ports:
             - containerPort: 8080

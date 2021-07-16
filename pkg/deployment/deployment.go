@@ -24,9 +24,10 @@ var (
 )
 
 const (
-	ImagePullBackOff = "ImagePullBackOff"
-	ErrImagePull     = "ErrImagePull"
-	CrashLoopBackOff = "CrashLoopBackOff"
+	ImagePullBackOff           = "ImagePullBackOff"
+	ErrImagePull               = "ErrImagePull"
+	CrashLoopBackOff           = "CrashLoopBackOff"
+	CreateContainerConfigError = "CreateContainerConfigError"
 )
 
 func GetFailingDeployments(
@@ -55,9 +56,26 @@ func GetFailingDeployments(
 	return fails
 }
 
+func createContainerConfigError(containers []v1.ContainerStatus) bool {
+	for _, containerStatus := range containers {
+		waiting := containerStatus.State.Waiting
+		if waiting != nil {
+			log.Debugf("Waiting: %+v", waiting)
+		}
+		if waiting != nil && waiting.Reason == CreateContainerConfigError {
+			return true
+		}
+	}
+
+	return false
+}
+
 func containerImageCheckFail(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
 		waiting := containerStatus.State.Waiting
+		if waiting != nil {
+			log.Debugf("Waiting: %+v", waiting)
+		}
 		if waiting != nil && (waiting.Reason == ImagePullBackOff || waiting.Reason == ErrImagePull) {
 			return true
 		}
@@ -97,6 +115,9 @@ func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) bool {
 	case pod.Status.Phase == v1.PodPending:
 		log.Debugf("Pod: %s pending", pod.Name)
 		if containerImageCheckFail(pod.Status.ContainerStatuses) {
+			return true
+		}
+		if createContainerConfigError(pod.Status.ContainerStatuses) {
 			return true
 		}
 

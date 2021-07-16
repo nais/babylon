@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: failconfig
+  labels:
+    app: failconfig
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: failconfig
+  template:
+    metadata:
+      labels:
+        app: failconfig
+    spec:
+      containers:
+        - image: nginx
+          name: failconfig
+          resources: { }
+          ports:
+            - containerPort: 8080
+          env:
+            - name: options
+              valueFrom:
+                configMapKeyRef:
+                  name: option
+                  key: var5
