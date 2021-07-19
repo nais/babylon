@@ -26,7 +26,7 @@ func Init() Metrics {
 		DeploymentRollbacks: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_deployment_rollbacks_total",
 			Help: "Deployments rolled back",
-		}, []string{"deployment", "affected_team", "dryrun"}),
+		}, []string{"deployment", "affected_team", "dryrun", "slack_channel"}),
 		RuleActivations: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_rule_activations_total",
 			Help: "Rules triggered",
@@ -42,7 +42,7 @@ func (m *Metrics) IncDeploymentRollbacks(deployment *appsv1.Deployment, armed bo
 	}
 
 	metric, err := m.DeploymentRollbacks.GetMetricWithLabelValues(
-		deployment.Name, team, strconv.FormatBool(!armed))
+		deployment.Name, team, strconv.FormatBool(!armed), "#babylon-alerts")
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
