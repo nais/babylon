@@ -18,6 +18,8 @@ spec:
       value: "{{restart_threshold}}"
     - name: RESOURCE_AGE
       value: "{{resource_age}}"
+    - name: TICKRATE
+      value: "{{tickrate}}"
   replicas:
     min: 1
     max: 1

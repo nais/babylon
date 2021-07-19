@@ -28,7 +28,7 @@ func parseFlags() config.Config {
 	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
 
 	var tickrate string
-	flag.StringVar(&tickrate, "timeout", config.GetEnv("TICKRATE", "5s"), "tickrate of main loop")
+	flag.StringVar(&tickrate, "tickrate", config.GetEnv("TICKRATE", cfg.TickRate.String()), "tickrate of main loop")
 
 	var restartThreshold string
 	defaultRestartThreshold := config.GetEnv("RESTART_THRESHOLD", fmt.Sprintf("%d", cfg.RestartThreshold))

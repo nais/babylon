@@ -29,6 +29,8 @@ spec:
               value: "debug"
             - name: RESOURCE_AGE
               value: "60s"
+            - name: TICKRATE
+              value: "10s"
           image: babylon
           ports:
             - containerPort: 8080

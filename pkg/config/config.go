@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	DefaultTickRate         = 5 * time.Second
+	DefaultTickRate         = 15 * time.Minute
 	DefaultRestartThreshold = 200
 	DefaultAge              = 10 * time.Minute
 )

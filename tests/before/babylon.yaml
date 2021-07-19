@@ -33,6 +33,8 @@ spec:
               value: "1"
             - name: RESOURCE_AGE
               value: "10s"
+            - name: TICKRATE
+              value: "5s"
           image: babylon
           ports:
             - containerPort: 8080
