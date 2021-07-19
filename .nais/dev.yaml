@@ -4,6 +4,7 @@ ingresses:
 log_level: "info"
 port: "8080"
 armed: "false"
+alert_channels: "true"
 restart_threshold: "200"
 resource_age: "10m"
 tickrate: "1m"

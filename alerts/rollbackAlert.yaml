@@ -21,6 +21,10 @@ spec:
       action: |
         Read app logs (kubectl logs appname).
         Read Application events (kubectl describe deployment appname)
-      description: Babylon rolled back \{{ $labels.deployment }} due to it failing with error `ImagePullBackOff`
+      description: |
+        THIS IS A TEST OF BABYLON'S NOTIFICATION SYSTEM. PLEASE IGNORE THIS MESSAGE.
+        HOWEVER, WE HAVE DETECTED AN ERROR IN YOUR NAIS DEPLOYMENT "\{{ $labels.deployment }}".
+        (You might want to turn it off and on again, or rollback :oldmanyellsatcloud:)
+      # description: Babylon rolled back \{{ $labels.deployment }} due to it failing with error `ImagePullBackOff`
       documentation: https://github.com/nais/babylon/README.md
       severity: warning

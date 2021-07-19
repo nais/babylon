@@ -14,6 +14,8 @@ spec:
       value: "{{port}}"
     - name: ARMED
       value: "{{armed}}"
+    - name: ALERT_CHANNELS
+      value: "{{alert_channels}}"
     - name: RESTART_THRESHOLD
       value: "{{restart_threshold}}"
     - name: RESOURCE_AGE
