@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: babylon
+  name: babylon-minikube
   labels:
-    app: babylon
+    app: babylon-minikube
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: babylon
+      app: babylon-minikube
   template:
     metadata:
       labels:
-        app: babylon
+        app: babylon-minikube
     spec:
       serviceAccountName: babylon-service-account
       containers:
-        - name: babylon
+        - name: babylon-minikube
           imagePullPolicy: Never
           env:
             - name: ARMED
@@ -83,7 +83,7 @@ metadata:
   name: babylon-service
 spec:
   selector:
-    app: babylon
+    app: babylon-minikube
   ports:
     - port: 8080
       targetPort: 8080
