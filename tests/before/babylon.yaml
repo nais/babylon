@@ -6,23 +6,23 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: babylon
+  name: babylon-test
   namespace: babylon-test
   labels:
-    app: babylon
+    app: babylon-test
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: babylon
+      app: babylon-test
   template:
     metadata:
       labels:
-        app: babylon
+        app: babylon-test
     spec:
       serviceAccountName: babylon-service-account
       containers:
-        - name: babylon
+        - name: babylon-test
           imagePullPolicy: Never
           env:
             - name: ARMED
