@@ -23,8 +23,11 @@ import (
 func parseFlags() config.Config {
 	cfg := config.DefaultConfig()
 	isArmed := config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
+	alertChannels := config.GetEnv("ALERT_CHANNELS", fmt.Sprintf("%v", cfg.AlertChannels)) == "true"
 	flag.StringVar(&cfg.LogLevel, "log-level", config.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
 	flag.BoolVar(&cfg.Armed, "armed", isArmed, "whether to start destruction")
+	flag.BoolVar(&cfg.AlertChannels, "alert_channels", alertChannels,
+		"whether to alert individual team channels or sending alerts to #babylon-alerts")
 	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
 
 	var tickrate string

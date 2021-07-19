@@ -34,7 +34,7 @@ func Init() Metrics {
 	}
 }
 
-func (m *Metrics) IncDeploymentRollbacks(deployment *appsv1.Deployment, armed bool) {
+func (m *Metrics) IncDeploymentRollbacks(deployment *appsv1.Deployment, armed bool, channel string) {
 	team, ok := deployment.Labels["team"]
 
 	if !ok {
@@ -42,7 +42,7 @@ func (m *Metrics) IncDeploymentRollbacks(deployment *appsv1.Deployment, armed bo
 	}
 
 	metric, err := m.DeploymentRollbacks.GetMetricWithLabelValues(
-		deployment.Name, team, strconv.FormatBool(!armed), "#babylon-alerts")
+		deployment.Name, team, strconv.FormatBool(!armed), channel)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 

@@ -15,6 +15,7 @@ const (
 
 type Config struct {
 	Armed               bool
+	AlertChannels       bool
 	LogLevel            string
 	Port                string
 	TickRate            time.Duration
@@ -28,6 +29,7 @@ func DefaultConfig() Config {
 		LogLevel:            "info",
 		Port:                "8080",
 		Armed:               false,
+		AlertChannels:       false,
 		TickRate:            DefaultTickRate,
 		RestartThreshold:    DefaultRestartThreshold,
 		ResourceAge:         DefaultAge,

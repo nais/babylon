@@ -3,6 +3,7 @@ module github.com/nais/babylon
 go 1.16
 
 require (
+	github.com/nais/liberator v0.0.0-20210709123736-8445fc0a4e18
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sirupsen/logrus v1.8.1
 	k8s.io/api v0.21.3

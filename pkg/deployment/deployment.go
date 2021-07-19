@@ -265,5 +265,5 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 
 		return
 	}
-	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed)
+	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace))
 }
