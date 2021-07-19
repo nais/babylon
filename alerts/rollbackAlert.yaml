@@ -8,7 +8,7 @@ metadata:
 spec:
   receivers: # receivers for all alerts below
     slack:
-      channel: '\{{ $labels.slack_channel }}'
+      channel: \{{ $labels.slack_channel }}
       icon_emoji: ':farmer:'
       send_resolved: false
       username: Babylon - Testing
