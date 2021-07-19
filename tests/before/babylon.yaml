@@ -35,6 +35,8 @@ spec:
               value: "10s"
             - name: TICKRATE
               value: "5s"
+            - name: NOTIFICATION_TIMEOUT
+              value: "5s"
           image: babylon
           ports:
             - containerPort: 8080
