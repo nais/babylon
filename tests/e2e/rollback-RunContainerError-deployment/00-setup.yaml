@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: init-crashing-backoff
+  labels:
+    app: init-crashing-backoff
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: init-crashing-backoff
+  template:
+    metadata:
+      labels:
+        app: init-crashing-backoff
+    spec:
+      containers:
+        - name: init-crashing-backoff
+          image: nginx
+      initContainers:
+        - name: init-crash-loop-container
+          image: busybox
+          command: ['blah']
+          volumeMounts:
+            - name: config-vol
+              mountPath: /etc/config
+      volumes:
+        - name: config-vol

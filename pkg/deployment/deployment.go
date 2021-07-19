@@ -53,7 +53,7 @@ DEPLOYMENTS:
 
 				continue
 			}
-			if allPodsFailingInReplicaSet(ctx, &rs.Items[j], s) {
+			if allPodsFailingInReplicaSet(ctx, &rs.Items[j], s) || checkFailingInitContainers(ctx, s, &rs.Items[j]) {
 				fails = append(fails, &deployments.Items[i])
 
 				continue DEPLOYMENTS
@@ -143,6 +143,27 @@ func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
 	}
 }
 
+func checkFailingInitContainers(ctx context.Context, s *service.Service, rs *appsv1.ReplicaSet) bool {
+	pods, err := getPodsFromReplicaSet(ctx, s, rs)
+	if err != nil {
+		return false
+	}
+
+	for i := range pods.Items {
+		if IsInitContainerFailed(s.Config, pods.Items[i].Status.InitContainerStatuses) {
+			log.Debugf("Init container failing for rs %s", rs.Name)
+
+			return true
+		}
+	}
+
+	return false
+}
+
+func IsInitContainerFailed(config *config.Config, initContainers []v1.ContainerStatus) bool {
+	return containerCrashLoopBackOff(config, initContainers) || containerImageCheckFail(initContainers)
+}
+
 func getReplicaSetsByDeployment(
 	ctx context.Context,
 	s *service.Service,
@@ -159,14 +180,23 @@ func getReplicaSetsByDeployment(
 	return replicaSets, nil
 }
 
+func getPodsFromReplicaSet(ctx context.Context, s *service.Service, rs *appsv1.ReplicaSet) (*v1.PodList, error) {
+	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
+	pods := &v1.PodList{}
+	err := s.Client.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
+	if err != nil {
+		return nil, fmt.Errorf("could not get pods from replica set: %w", err)
+	}
+
+	return pods, nil
+}
+
 func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *service.Service) bool {
 	if *rs.Spec.Replicas == 0 {
 		return false
 	}
 
-	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
-	pods := &v1.PodList{}
-	err := s.Client.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
+	pods, err := getPodsFromReplicaSet(ctx, s, rs)
 	if err != nil {
 		log.Errorf("finding pods for replicaSet %s failed", rs.Name)
 
@@ -187,6 +217,8 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 func RollbackDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
 	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
 	if err != nil {
+		log.Debugf("Could not find replicasets for deploy %s", deployment.Name)
+
 		return err
 	}
 	// 0 replicaSets assumed to not be possible

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: init-crash
+  labels:
+    app: init-crash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: init-crash
+  template:
+    metadata:
+      labels:
+        app: init-crash
+    spec:
+      containers:
+        - name: init-crash
+          image: nginx
+      initContainers:
+        - name: init-crash-container
+          image: deaorsigemarisoegamrsg
