@@ -10,7 +10,7 @@ spec:
     group_by: [slack_channel]
   receivers: # receivers for all alerts below
     slack:
-      channel: '\{{ .GroupLabels.slack_channel }}'
+      channel: '\{{ index ((index .Alerts 0).Labels) "slack_channel" }}'
       icon_emoji: ':farmer:'
       send_resolved: false
       username: Babylon - Testing
