@@ -7,15 +7,13 @@ metadata:
     team: babylon
 spec:
   route:
-    receiver: 'slack-notifications'
     group_by: [slack_channel]
   receivers: # receivers for all alerts below
-    - name: 'slack-notifications'
-      slack:
-        channel: '\{{ .GroupLabels.slack_channel }}'
-        icon_emoji: ':farmer:'
-        send_resolved: false
-        username: Babylon - Testing
+    slack:
+      channel: '\{{ .GroupLabels.slack_channel }}'
+      icon_emoji: ':farmer:'
+      send_resolved: false
+      username: Babylon - Testing
   alerts:
     - alert: Deployment rolled back
       expr: 'increase(babylon_deployment_rollbacks_total[5m]) > 1'
