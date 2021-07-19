@@ -38,6 +38,10 @@ func parseFlags() config.Config {
 	flag.StringVar(&resourceAge, "resource-age", config.GetEnv("RESOURCE_AGE", "10m"),
 		"resource age needed before rollback")
 
+	var notificationTimeout string
+	defaultNotificationTimeout := config.GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
+	flag.StringVar(&notificationTimeout, "notification-timeout", defaultNotificationTimeout, "set notification timeout")
+
 	flag.Parse()
 	duration, err := time.ParseDuration(tickrate)
 	if err == nil {
@@ -46,6 +50,10 @@ func parseFlags() config.Config {
 	age, err := time.ParseDuration(resourceAge)
 	if err == nil {
 		cfg.ResourceAge = age
+	}
+	nt, err := time.ParseDuration(notificationTimeout)
+	if err == nil {
+		cfg.NotificationTimeout = nt
 	}
 
 	rt, err := strconv.ParseInt(restartThreshold, 10, 32)
@@ -92,7 +100,7 @@ func main() {
 		log.Info("Armed and dangerous! 🪖")
 	}
 
-	s := service.Service{Config: &cfg, Client: c, Metrics: &m, PruneHistory: make(map[string]time.Time)}
+	s := service.Service{Config: &cfg, Client: c, Metrics: &m}
 
 	go gardener(ctx, &s)
 
@@ -112,10 +120,19 @@ func gardener(ctx context.Context, s *service.Service) {
 		}
 		deploymentFails := deployment.GetFailingDeployments(ctx, s, deployments)
 		for _, deploy := range deploymentFails {
-			name := deploy.Namespace + deploy.Name
-			if time.Since(s.PruneHistory[name]) < time.Minute*5 {
-				// TODO: use annotation instead of in-memory map
-				continue
+			if deploy.Annotations[config.NotificationAnnotation] != "" {
+				lastNotified, err := time.Parse(time.RFC3339, deploy.Annotations[config.NotificationAnnotation])
+				if err != nil {
+					log.Warnf("Could not parse %s for %s: %v", config.NotificationAnnotation, deploy.Name, err)
+
+					continue
+				}
+
+				if time.Since(lastNotified) < s.Config.NotificationTimeout {
+					log.Debugf("Team already notified at %s, skipping deploy %s", lastNotified.String(), deploy.Name)
+
+					continue
+				}
 			}
 
 			deployment.PruneFailingDeployment(ctx, s, deploy)

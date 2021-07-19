@@ -6,28 +6,32 @@ import (
 )
 
 const (
-	DefaultTickRate         = 15 * time.Minute
-	DefaultRestartThreshold = 200
-	DefaultAge              = 10 * time.Minute
+	DefaultTickRate            = 15 * time.Minute
+	DefaultRestartThreshold    = 200
+	DefaultAge                 = 10 * time.Minute
+	DefaultNotificationTimeout = 24 * time.Hour
+	NotificationAnnotation     = "nais.babylon/last_notified"
 )
 
 type Config struct {
-	Armed            bool
-	LogLevel         string
-	Port             string
-	TickRate         time.Duration
-	RestartThreshold int32
-	ResourceAge      time.Duration
+	Armed               bool
+	LogLevel            string
+	Port                string
+	TickRate            time.Duration
+	RestartThreshold    int32
+	ResourceAge         time.Duration
+	NotificationTimeout time.Duration
 }
 
 func DefaultConfig() Config {
 	return Config{
-		LogLevel:         "info",
-		Port:             "8080",
-		Armed:            false,
-		TickRate:         DefaultTickRate,
-		RestartThreshold: DefaultRestartThreshold,
-		ResourceAge:      DefaultAge,
+		LogLevel:            "info",
+		Port:                "8080",
+		Armed:               false,
+		TickRate:            DefaultTickRate,
+		RestartThreshold:    DefaultRestartThreshold,
+		ResourceAge:         DefaultAge,
+		NotificationTimeout: DefaultNotificationTimeout,
 	}
 }
 

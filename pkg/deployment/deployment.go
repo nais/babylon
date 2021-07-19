@@ -194,6 +194,7 @@ func RollbackDeployment(ctx context.Context, s *service.Service, deployment *app
 		log.Infof("Deployment %s has only 1 replicaset", deployment.Name)
 		patch := client.MergeFrom(deployment.DeepCopy())
 		deployment.Spec.Replicas = utils.Int32ptr(0)
+		deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 		err := s.Client.Patch(ctx, deployment, patch)
 		if err != nil {
 			return fmt.Errorf("failed to apply patch: %w", err)
@@ -211,6 +212,7 @@ func RollbackDeployment(ctx context.Context, s *service.Service, deployment *app
 	desiredReplicaSet := rs.Items[1]
 	desiredReplicaSet.Spec.Replicas = utils.Int32ptr(0)
 	patch := client.MergeFrom(deployment.DeepCopy())
+	deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 	deployment.Spec.Template.Spec = desiredReplicaSet.Spec.Template.Spec
 	err = s.Client.Patch(ctx, deployment, patch)
 	if err != nil {
@@ -232,6 +234,4 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 		return
 	}
 	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed)
-	name := deployment.Namespace + deployment.Name
-	s.PruneHistory[name] = time.Now()
 }

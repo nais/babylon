@@ -20,6 +20,8 @@ spec:
       value: "{{resource_age}}"
     - name: TICKRATE
       value: "{{tickrate}}"
+    - name: NOTIFICATION_TIMEOUT
+      value: "{{notification_timeout}}"
   replicas:
     min: 1
     max: 1
