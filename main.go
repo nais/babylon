@@ -80,7 +80,7 @@ func main() {
 	}
 
 	m := metrics.Init()
-	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollbacks)
+	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollbacks, m.AllPods)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme.Scheme,
 		MetricsBindAddress:     fmt.Sprintf(":%d", port),
@@ -121,6 +121,7 @@ func gardener(ctx context.Context, s *service.Service) {
 		if logger2.Logk8sError(err) {
 			continue
 		}
+		deployment.ListAllPodsToMetrics(ctx, s, deployments)
 		deploymentFails := deployment.GetFailingDeployments(ctx, s, deployments)
 		for _, deploy := range deploymentFails {
 			if deploy.Annotations[config.NotificationAnnotation] != "" {
