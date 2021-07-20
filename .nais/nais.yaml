@@ -24,6 +24,10 @@ spec:
       value: "{{tickrate}}"
     - name: NOTIFICATION_TIMEOUT
       value: "{{notification_timeout}}"
+    {{#if linkerd_disabled}}
+    - name: LINKERD_DISABLED
+      value: "{{linkerd_disabled}}"
+    {{/if}}
   replicas:
     min: 1
     max: 1

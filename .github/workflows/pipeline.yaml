@@ -96,5 +96,5 @@ jobs:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: ${{ matrix.cluster }}
           RESOURCE: .nais/nais.yaml,alerts/rollbackAlert.yaml
-          VARS: .nais/dev.yaml
+          VARS: .nais/${{ matrix.cluster }}.yaml
           VAR: image=${{ env.docker_image }}
