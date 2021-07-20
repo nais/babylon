@@ -81,13 +81,20 @@ jobs:
     runs-on: ubuntu-latest
     if: "github.ref == 'refs/heads/main'"
 
+    strategy:
+      matrix:
+        cluster:
+          - dev-gcp
+          - dev-fss
+          - dev-sbs
+
     steps:
       - uses: actions/checkout@v2
       - name: Deploy to DEV
         uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-gcp
+          CLUSTER: ${{ matrix.cluster }}
           RESOURCE: .nais/nais.yaml,alerts/rollbackAlert.yaml
           VARS: .nais/dev.yaml
           VAR: image=${{ env.docker_image }}
