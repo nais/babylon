@@ -30,7 +30,7 @@ func Init() Metrics {
 		AllPods: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_all_pods_total",
 			Help: "All pods detected",
-		}, []string{"deployment", "team", "status", "reason"}),
+		}, []string{"deployment", "team", "phase", "reason"}),
 	}
 }
 
@@ -73,14 +73,14 @@ func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
 	metric.Inc()
 }
 
-func (m *Metrics) IncAllPods(deployment *appsv1.Deployment, status, reason string) {
+func (m *Metrics) IncAllPods(deployment *appsv1.Deployment, phase, reason string) {
 	team, ok := deployment.Labels["team"]
 
 	if !ok {
 		team = Unknown
 	}
 
-	metric, err := m.AllPods.GetMetricWithLabelValues(deployment.Name, team, status, reason)
+	metric, err := m.AllPods.GetMetricWithLabelValues(deployment.Name, team, phase, reason)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 

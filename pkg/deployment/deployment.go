@@ -46,7 +46,15 @@ func ListAllPodsToMetrics(
 			}
 
 			for _, pod := range replicaSet.Items {
-				s.Metrics.IncAllPods(&deployments.Items[i], string(pod.Status.Phase), pod.Status.Reason)
+				var reason string
+				waiting := pod.Status.ContainerStatuses[0].State.Waiting
+				running := pod.Status.ContainerStatuses[0].State.Running
+				if waiting != nil && running == nil {
+					reason = waiting.Reason
+				} else {
+					reason = "Running"
+				}
+				s.Metrics.IncAllPods(&deployments.Items[i], string(pod.Status.Phase), reason)
 			}
 		}
 	}
