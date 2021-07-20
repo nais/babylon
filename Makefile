@@ -14,7 +14,7 @@ docker-build:
 	docker build -t babylon .
 
 docker-build-fast:
-	GOOS=linux go build -o babylon
+	GOOS=linux CGO_ENABLED=0 go build -o babylon
 	docker build -f Local.dockerfile -t babylon .
 
 lint:

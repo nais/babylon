@@ -66,7 +66,7 @@ jobs:
       - name: Build Docker Image
         run: |
           eval $(minikube docker-env --shell=bash)
-          go build -o babylon
+          GOOS=linux CGO_ENABLED=0 go build -o babylon
           docker build -f Local.dockerfile -t babylon .
 
       - name: Run Integration Test
