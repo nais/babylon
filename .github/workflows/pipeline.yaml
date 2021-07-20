@@ -23,7 +23,7 @@ jobs:
     name: Build and push Docker image
     needs: check
     runs-on: ubuntu-latest
-    if: "github.ref == 'refs/heads/main'"
+    if: "${{ github.ref }} == 'refs/heads/main'"
 
     steps:
       - uses: actions/checkout@v2
@@ -57,7 +57,7 @@ jobs:
       - name: Build Docker Image
         run: |
           eval $(minikube docker-env --shell=bash)
-          docker build -t babylon .
+          docker build -f Local.dockerfile -t babylon .
 
       - name: Run Integration Test
         run: kubectl kuttl test --timeout=120 --start-kind=false
@@ -79,7 +79,7 @@ jobs:
       - docker
       - integrationTest
     runs-on: ubuntu-latest
-    if: "github.ref == 'refs/heads/main'"
+    if: "${{ github.ref }} == 'refs/heads/main'"
 
     strategy:
       matrix:
