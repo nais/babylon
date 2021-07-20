@@ -52,14 +52,13 @@ func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
 	if !ok {
 		team = Unknown
 	}
-	app, ok := rs.Spec.Selector.MatchLabels["app"]
+	deployment, ok := rs.Spec.Selector.MatchLabels["app"]
 
 	if !ok {
-		app = Unknown
+		deployment = Unknown
 	}
 
-	metric, err := m.RuleActivations.GetMetricWithLabelValues(
-		app, team, reason)
+	metric, err := m.RuleActivations.GetMetricWithLabelValues(deployment, team, reason)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
