@@ -14,7 +14,6 @@ const Unknown = "unknown"
 type Metrics struct {
 	DeploymentRollbacks *prometheus.CounterVec
 	RuleActivations     *prometheus.CounterVec
-	AllPods             *prometheus.CounterVec
 }
 
 func Init() Metrics {
@@ -27,10 +26,6 @@ func Init() Metrics {
 			Name: "babylon_rule_activations_total",
 			Help: "Rules triggered",
 		}, []string{"deployment", "affected_team", "reason"}),
-		AllPods: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "babylon_all_pods_total",
-			Help: "All pods detected",
-		}, []string{"deployment", "team", "phase", "reason"}),
 	}
 }
 
@@ -65,22 +60,6 @@ func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
 
 	metric, err := m.RuleActivations.GetMetricWithLabelValues(
 		app, team, reason)
-	if err != nil {
-		log.Errorf("Metric failed: %+v", err)
-
-		return
-	}
-	metric.Inc()
-}
-
-func (m *Metrics) IncAllPods(deployment *appsv1.Deployment, phase, reason string) {
-	team, ok := deployment.Labels["team"]
-
-	if !ok {
-		team = Unknown
-	}
-
-	metric, err := m.AllPods.GetMetricWithLabelValues(deployment.Name, team, phase, reason)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 

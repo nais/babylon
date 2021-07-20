@@ -29,37 +29,6 @@ const (
 	CreateContainerConfigError = "CreateContainerConfigError"
 )
 
-func ListAllPodsToMetrics(
-	ctx context.Context,
-	s *service.Service,
-	deployments *appsv1.DeploymentList) {
-	for i := range deployments.Items {
-		rs, err := getReplicaSetsByDeployment(ctx, s, &deployments.Items[i])
-		if err != nil {
-			continue
-		}
-
-		for j := range rs.Items {
-			replicaSet, err := getPodsFromReplicaSet(ctx, s, &rs.Items[j])
-			if err != nil {
-				continue
-			}
-
-			for _, pod := range replicaSet.Items {
-				var reason string
-				waiting := pod.Status.ContainerStatuses[0].State.Waiting
-				running := pod.Status.ContainerStatuses[0].State.Running
-				if waiting != nil && running == nil {
-					reason = waiting.Reason
-				} else {
-					reason = "Running"
-				}
-				s.Metrics.IncAllPods(&deployments.Items[i], string(pod.Status.Phase), reason)
-			}
-		}
-	}
-}
-
 func GetFailingDeployments(
 	ctx context.Context,
 	s *service.Service,
