@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"strconv"
 	"time"
@@ -22,31 +21,25 @@ import (
 
 func parseFlags() config.Config {
 	cfg := config.DefaultConfig()
-	isArmed := config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
-	alertChannels := config.GetEnv("ALERT_CHANNELS", fmt.Sprintf("%v", cfg.AlertChannels)) == "true"
-	flag.StringVar(&cfg.LogLevel, "log-level", config.GetEnv("LOG_LEVEL", cfg.LogLevel), "set the log level of babylon")
-	flag.BoolVar(&cfg.Armed, "armed", isArmed, "whether to start destruction")
-	flag.BoolVar(&cfg.AlertChannels, "alert_channels", alertChannels,
-		"whether to alert individual team channels or sending alerts to #babylon-alerts")
-	flag.StringVar(&cfg.Port, "port", config.GetEnv("PORT", cfg.Port), "set port number")
+	// Whether to start destruction
+	cfg.Armed = config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
 
-	var tickrate string
-	flag.StringVar(&tickrate, "tickrate", config.GetEnv("TICKRATE", cfg.TickRate.String()), "tickrate of main loop")
+	// Whether to alert individual team channels or sending alerts to #babylon-alerts
+	cfg.AlertChannels = config.GetEnv("ALERT_CHANNELS", fmt.Sprintf("%v", cfg.AlertChannels)) == "true"
 
-	var restartThreshold string
-	defaultRestartThreshold := config.GetEnv("RESTART_THRESHOLD", fmt.Sprintf("%d", cfg.RestartThreshold))
-	flag.StringVar(&restartThreshold, "restart-threshold", defaultRestartThreshold, "set restart threshold")
+	cfg.LogLevel = config.GetEnv("LOG_LEVEL", cfg.LogLevel)
+	cfg.Port = config.GetEnv("PORT", cfg.Port)
 
-	var resourceAge string
-	flag.StringVar(&resourceAge, "resource-age", config.GetEnv("RESOURCE_AGE", "10m"),
-		"resource age needed before rollback")
+	tickRate := config.GetEnv("TICKRATE", cfg.TickRate.String())
+	restartThreshold := config.GetEnv("RESTART_THRESHOLD", fmt.Sprintf("%d", cfg.RestartThreshold))
 
-	var notificationTimeout string
-	defaultNotificationTimeout := config.GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
-	flag.StringVar(&notificationTimeout, "notification-timeout", defaultNotificationTimeout, "set notification timeout")
+	// Resource age needed before rollback
+	resourceAge := config.GetEnv("RESOURCE_AGE", "10m")
 
-	flag.Parse()
-	duration, err := time.ParseDuration(tickrate)
+	// Timeout between notifying teams
+	notificationTimeout := config.GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
+
+	duration, err := time.ParseDuration(tickRate)
 	if err == nil {
 		cfg.TickRate = duration
 	}
