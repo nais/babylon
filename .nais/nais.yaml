@@ -37,10 +37,10 @@ spec:
     path: "/metrics"
   limits:
     cpu: "200m"
-    memory: "256Mi"
+    memory: "1Gi"
   requests:
     cpu: "200m"
-    memory: "256Mi"
+    memory: "512Mi"
   ingresses:
     {{#each ingresses as |url|}}
        - {{url}}
