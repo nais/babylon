@@ -74,7 +74,7 @@ jobs:
 
       - name: Debug Test
         if: ${{ failure() }}
-        run: kubectl logs -l app=babylon --namespace=babylon-test --tail=1000
+        run: kubectl logs -l app=babylon-test --namespace=babylon-test --tail=1000
 
       - uses: actions/upload-artifact@v2
         if: ${{ always() }}
