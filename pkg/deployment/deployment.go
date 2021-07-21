@@ -214,12 +214,15 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 	return failedPods == len(pods.Items)
 }
 
-func RollbackDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
+func RollbackDeployment(
+	ctx context.Context,
+	s *service.Service,
+	deployment *appsv1.Deployment) (*appsv1.ReplicaSet, error) {
 	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
 	if err != nil {
 		log.Debugf("Could not find replicasets for deploy %s", deployment.Name)
 
-		return err
+		return nil, err
 	}
 	// 0 replicaSets assumed to not be possible
 	if len(rs.Items) == 1 {
@@ -229,10 +232,10 @@ func RollbackDeployment(ctx context.Context, s *service.Service, deployment *app
 		deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 		err := s.Client.Patch(ctx, deployment, patch)
 		if err != nil {
-			return fmt.Errorf("failed to apply patch: %w", err)
+			return nil, fmt.Errorf("failed to apply patch: %w", err)
 		}
 
-		return nil
+		return nil, nil
 	}
 	// Most recent replicaSet assumed to be at index = 1
 	log.Infof("Rolling back deployment %s to previous revision", deployment.Name)
@@ -250,20 +253,20 @@ func RollbackDeployment(ctx context.Context, s *service.Service, deployment *app
 	if err != nil {
 		log.Errorf("Failed to patch deployment: %+v", err)
 
-		return ErrPatchFailed
+		return nil, ErrPatchFailed
 	}
 	log.Infof("Rolled back deployment %s to revision: %s",
 		deployment.Name, desiredReplicaSet.Annotations["deployment.kubernetes.io/revision"])
 
-	return nil
+	return &desiredReplicaSet, nil
 }
 
 func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
-	err := RollbackDeployment(ctx, s, deployment)
+	rs, err := RollbackDeployment(ctx, s, deployment)
 	if err != nil {
 		log.Errorf("Rollback failed: %+v", err)
 
 		return
 	}
-	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace))
+	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace), rs)
 }

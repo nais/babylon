@@ -21,7 +21,7 @@ func Init() Metrics {
 		DeploymentRollbacks: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_deployment_rollbacks_total",
 			Help: "Deployments rolled back",
-		}, []string{"deployment", "affected_team", "dryrun", "slack_channel"}),
+		}, []string{"deployment", "affected_team", "dryrun", "slack_channel", "previousDockerHash", "currentDockerHash"}),
 		RuleActivations: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_rule_activations_total",
 			Help: "Rules triggered",
@@ -29,15 +29,21 @@ func Init() Metrics {
 	}
 }
 
-func (m *Metrics) IncDeploymentRollbacks(deployment *appsv1.Deployment, armed bool, channel string) {
+func (m *Metrics) IncDeploymentRollbacks(
+	deployment *appsv1.Deployment,
+	armed bool,
+	channel string,
+	currentRs *appsv1.ReplicaSet) {
 	team, ok := deployment.Labels["team"]
-
 	if !ok {
 		team = Unknown
 	}
 
+	previousDockerHash := deployment.Spec.Template.Spec.Containers[0].Image
+	currentDockerHash := currentRs.Spec.Template.Spec.Containers[0].Image
+
 	metric, err := m.DeploymentRollbacks.GetMetricWithLabelValues(
-		deployment.Name, team, strconv.FormatBool(!armed), channel)
+		deployment.Name, team, strconv.FormatBool(!armed), channel, previousDockerHash, currentDockerHash)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 

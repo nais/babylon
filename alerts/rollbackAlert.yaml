@@ -23,7 +23,8 @@ spec:
         Read Application events (kubectl describe deployment appname)
       description: |
         THIS IS A TEST OF BABYLON'S NOTIFICATION SYSTEM. PLEASE IGNORE THIS MESSAGE.
-        HOWEVER, WE HAVE DETECTED AN ERROR IN YOUR NAIS DEPLOYMENT "\{{ $labels.deployment }}".
+        However, we have detected an error in your nais deployment "\{{ $labels.deployment }}".
+        Rolling back from \{{ $labels.previousDockerHash }} to \{{ $labels.currentDockerHash }}.
         (You might want to turn it off and on again, or rollback :oldmanyellsatcloud:)
       # description: Babylon rolled back \{{ $labels.deployment }} due to it failing with error `ImagePullBackOff`
       documentation: https://github.com/nais/babylon/README.md
