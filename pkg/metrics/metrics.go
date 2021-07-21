@@ -39,8 +39,20 @@ func (m *Metrics) IncDeploymentRollbacks(
 		team = Unknown
 	}
 
-	previousDockerHash := deployment.Spec.Template.Spec.Containers[0].Image
-	currentDockerHash := currentRs.Spec.Template.Spec.Containers[0].Image
+	pContainers := deployment.Spec.Template.Spec.Containers
+	cContainers := currentRs.Spec.Template.Spec.Containers
+
+	previousDockerHash := ""
+	currentDockerHash := ""
+	if len(pContainers) > 0 {
+		previousDockerHash = deployment.Spec.Template.Spec.Containers[0].Image
+	}
+	if len(cContainers) > 0 {
+		currentDockerHash = currentRs.Spec.Template.Spec.Containers[0].Image
+	}
+
+	log.Debugf("Deployment %v", deployment)
+	log.Debugf("ReplicaSet %v", currentRs)
 
 	metric, err := m.DeploymentRollbacks.GetMetricWithLabelValues(
 		deployment.Name, team, strconv.FormatBool(!armed), channel, previousDockerHash, currentDockerHash)
