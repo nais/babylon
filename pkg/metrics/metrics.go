@@ -39,15 +39,13 @@ func (m *Metrics) IncDeploymentRollbacks(
 		team = Unknown
 	}
 
-	pContainers := deployment.Spec.Template.Spec.Containers
-	cContainers := currentRs.Spec.Template.Spec.Containers
-
 	previousDockerHash := ""
 	currentDockerHash := ""
-	if len(pContainers) > 0 {
+
+	if len(deployment.Spec.Template.Spec.Containers) > 0 {
 		previousDockerHash = deployment.Spec.Template.Spec.Containers[0].Image
 	}
-	if len(cContainers) > 0 {
+	if currentRs != nil && len(currentRs.Spec.Template.Spec.Containers) > 0 {
 		currentDockerHash = currentRs.Spec.Template.Spec.Containers[0].Image
 	}
 
