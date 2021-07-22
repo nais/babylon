@@ -16,3 +16,4 @@ commands:
   - command: sleep 1
   - command: kubectl wait --timeout=60s --for condition=ready pod -l app=babylon-test --namespace=babylon-test
 timeout: 60
+parallel: 4
