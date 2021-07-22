@@ -4,6 +4,7 @@ SHELL=/bin/bash
 
 deploy-local:
 	if [ "$(shell minikube status | grep host | rev | cut -d' ' -f1 | rev)" == "Stopped" ]; then minikube start; fi
+	kubectx minikube
 	# apply minikube docker variables and build image
 	@eval $$(minikube docker-env --shell=bash); \
 	$(MAKE) docker-build-fast
@@ -25,6 +26,7 @@ hooks:
 
 test: ## Run tests.
 	if [ "$(shell minikube status | grep host | rev | cut -d' ' -f1 | rev)" == "Stopped" ]; then minikube start; fi
+	kubectx minikube
 	# apply minikube docker variables and build image
 	@eval $$(minikube docker-env --shell=bash); \
 	$(MAKE) docker-build-fast
