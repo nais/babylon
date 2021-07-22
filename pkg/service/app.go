@@ -21,15 +21,10 @@ type Service struct {
 const defaultChannel = "#babylon-alerts"
 
 func (s *Service) SlackChannel(ctx context.Context, ns string) string {
-	// TODO: Let users override channel without creating alert
 	if !s.Config.AlertChannels {
 		return defaultChannel
 	}
 
-	ch := s.existingAlertChannel(ctx, ns)
-	if ch != defaultChannel {
-		return ch
-	}
 	namespace := &v1.Namespace{}
 	key := client.ObjectKey{Name: ns}
 	err := s.Client.Get(ctx, key, namespace)
@@ -39,24 +34,34 @@ func (s *Service) SlackChannel(ctx context.Context, ns string) string {
 		return defaultChannel
 	}
 
-	ch, ok := namespace.Annotations["slack-channel"]
-	if !ok {
-		log.Warnf("Namespace %s does not have a slack-channel-annotation", ns)
-
-		return defaultChannel
+	ch, ok := namespace.Annotations["platform-alerts-channel"]
+	if ok {
+		return ch
 	}
 
-	return ch
+	ch, ok = s.existingAlertChannel(ctx, ns)
+	if ok {
+		return ch
+	}
+
+	ch, ok = namespace.Annotations["slack-channel"]
+	if !ok {
+		return ch
+	}
+
+	log.Warnf("Namespace %s does not have a slack-channel-annotation", ns)
+
+	return defaultChannel
 }
 
 // Get an existing alert channel in use by looking at NAIS alerts.
-func (s *Service) existingAlertChannel(ctx context.Context, ns string) string {
+func (s *Service) existingAlertChannel(ctx context.Context, ns string) (string, bool) {
 	alerts := &nais_io_v1.AlertList{}
 	err := s.Client.List(ctx, alerts, &client.ListOptions{Namespace: ns})
 	if err != nil {
 		log.Errorf("Failed to list alerts in namespace %s, got error %v", ns, err)
 
-		return defaultChannel
+		return "", false
 	}
 	// Sort alerts to avoid random channel picks
 	sort.Slice(alerts.Items, func(i, j int) bool {
@@ -68,8 +73,8 @@ func (s *Service) existingAlertChannel(ctx context.Context, ns string) string {
 			continue
 		}
 
-		return ch
+		return ch, true
 	}
 
-	return defaultChannel
+	return "", false
 }
