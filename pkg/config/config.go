@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"time"
 )
 
@@ -14,26 +15,30 @@ const (
 )
 
 type Config struct {
-	Armed               bool
-	AlertChannels       bool
-	LogLevel            string
-	Port                string
-	TickRate            time.Duration
-	RestartThreshold    int32
-	ResourceAge         time.Duration
-	NotificationTimeout time.Duration
+	Armed                bool
+	AlertChannels        bool
+	LogLevel             string
+	Port                 string
+	TickRate             time.Duration
+	RestartThreshold     int32
+	ResourceAge          time.Duration
+	NotificationTimeout  time.Duration
+	UseAllowedNamespaces bool
+	AllowedNamespaces    []string
 }
 
 func DefaultConfig() Config {
 	return Config{
-		LogLevel:            "info",
-		Port:                "8080",
-		Armed:               false,
-		AlertChannels:       false,
-		TickRate:            DefaultTickRate,
-		RestartThreshold:    DefaultRestartThreshold,
-		ResourceAge:         DefaultAge,
-		NotificationTimeout: DefaultNotificationTimeout,
+		LogLevel:             "info",
+		Port:                 "8080",
+		Armed:                false,
+		AlertChannels:        false,
+		TickRate:             DefaultTickRate,
+		RestartThreshold:     DefaultRestartThreshold,
+		ResourceAge:          DefaultAge,
+		NotificationTimeout:  DefaultNotificationTimeout,
+		UseAllowedNamespaces: false,
+		AllowedNamespaces:    []string{},
 	}
 }
 
@@ -43,4 +48,18 @@ func GetEnv(name, fallback string) string {
 	}
 
 	return fallback
+}
+
+func (c *Config) IsNamespaceAllowed(namespace string) bool {
+	if !c.UseAllowedNamespaces {
+		return true
+	}
+
+	for i := range c.AllowedNamespaces {
+		if strings.Contains(namespace, c.AllowedNamespaces[i]) || strings.Contains(c.AllowedNamespaces[i], namespace) {
+			return true
+		}
+	}
+
+	return false
 }

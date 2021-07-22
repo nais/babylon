@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skip-me-please
+  namespace: skip-namespace
+spec:
+  replicas: 1

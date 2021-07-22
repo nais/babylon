@@ -33,6 +33,10 @@ spec:
               value: "10s"
             - name: NOTIFICATION_TIMEOUT
               value: "60s"
+            - name: USE_ALLOWED_NAMESPACES
+              value: "true"
+            - name: ALLOWED_NAMESPACES
+              value: "default,babylon-test"
           image: babylon
           ports:
             - containerPort: 8080

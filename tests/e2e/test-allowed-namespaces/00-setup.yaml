@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: skip-namespace
+  labels:
+    name: skip-namespace
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skip-me-please
+  namespace: skip-namespace
+  labels:
+    app: skip-me-please
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: skip-me-please
+  template:
+    metadata:
+      labels:
+        app: skip-me-please
+    spec:
+      containers:
+        - name: skip-me-please
+          image: skipimagevvhgvghv

@@ -5,6 +5,13 @@
 By default, the application will not perform destructive actions. To arm it, either set the `-armed`-flag 
 or set the `ARMED` 💥 environment variable to true. 
 
+## Configure `ALLOWED_NAMESPACES` 
+
+By default, babylon looks for broken deploys in all namespaces, but this can be configured. If want to enable the allowlist, set the environment variable `USE_ALLOWED_NAMESPACES`
+to `true`, and add your namespaces to the environment variable `ALLOWED_NAMESPACES`, like `default,babylon`. 
+
+**Note:** `ALLOWED_NAMESPACES` is a comma seperated string without whitespace. 
+
 
 ## Using `make`
 

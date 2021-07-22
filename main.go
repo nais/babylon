@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
@@ -19,13 +20,15 @@ import (
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
+const StringTrue = "true"
+
 func parseFlags() config.Config {
 	cfg := config.DefaultConfig()
 	// Whether to start destruction
-	cfg.Armed = config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == "true"
+	cfg.Armed = config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == StringTrue
 
 	// Whether to alert individual team channels or sending alerts to #babylon-alerts
-	cfg.AlertChannels = config.GetEnv("ALERT_CHANNELS", fmt.Sprintf("%v", cfg.AlertChannels)) == "true"
+	cfg.AlertChannels = config.GetEnv("ALERT_CHANNELS", fmt.Sprintf("%v", cfg.AlertChannels)) == StringTrue
 
 	cfg.LogLevel = config.GetEnv("LOG_LEVEL", cfg.LogLevel)
 	cfg.Port = config.GetEnv("PORT", cfg.Port)
@@ -38,6 +41,12 @@ func parseFlags() config.Config {
 
 	// Timeout between notifying teams
 	notificationTimeout := config.GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
+
+	cfg.UseAllowedNamespaces = config.GetEnv("USE_ALLOWED_NAMESPACES",
+		fmt.Sprintf("%t", cfg.UseAllowedNamespaces)) == StringTrue
+
+	namespacesFromEnv := config.GetEnv("ALLOWED_NAMESPACES", "")
+	cfg.AllowedNamespaces = strings.Split(namespacesFromEnv, ",")
 
 	duration, err := time.ParseDuration(tickRate)
 	if err == nil {

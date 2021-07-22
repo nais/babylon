@@ -39,6 +39,11 @@ func GetFailingDeployments(
 
 DEPLOYMENTS:
 	for i, deployment := range deployments.Items {
+		if !s.Config.IsNamespaceAllowed(deployment.Namespace) {
+			log.Debugf("Namespace %s is not allowed, skipping", deployment.Namespace)
+
+			continue
+		}
 		rs, err := getReplicaSetsByDeployment(ctx, s, &deployments.Items[i])
 		if err != nil {
 			log.Errorf("Could not get replicaSet for deployment %s, %v", deployment.Name, err)
