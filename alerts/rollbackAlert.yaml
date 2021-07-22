@@ -28,7 +28,7 @@ spec:
 
         Om du ønsker å motta disse meldingene i en annen kanal,
         kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
-        [teams-repoet](https://github.com/navikt/teams).
+        https://github.com/navikt/teams.
         Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
         namespace, i alfabetisk rekkefølge.
       description: |
