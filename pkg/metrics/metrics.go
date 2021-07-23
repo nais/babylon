@@ -49,9 +49,6 @@ func (m *Metrics) IncDeploymentRollbacks(
 		currentDockerHash = currentRs.Spec.Template.Spec.Containers[0].Image
 	}
 
-	log.Debugf("Deployment %v", deployment)
-	log.Debugf("ReplicaSet %v", currentRs)
-
 	metric, err := m.DeploymentRollbacks.GetMetricWithLabelValues(
 		deployment.Name, team, strconv.FormatBool(!armed), channel, previousDockerHash, currentDockerHash)
 	if err != nil {
