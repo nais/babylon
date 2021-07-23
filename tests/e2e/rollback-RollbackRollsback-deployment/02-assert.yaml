@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rollback-rollsback
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: rollback-rollsback
+          image: demoasjndksajdn

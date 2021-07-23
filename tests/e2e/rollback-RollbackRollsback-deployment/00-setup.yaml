@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rollback-rollsback
+  labels:
+    app: rollback-rollsback
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rollback-rollsback
+  template:
+    metadata:
+      labels:
+        app: rollback-rollsback
+    spec:
+      containers:
+        - name: rollback-rollsback
+          image: demoasjndksajdn
+          ports:
+            - containerPort: 8080

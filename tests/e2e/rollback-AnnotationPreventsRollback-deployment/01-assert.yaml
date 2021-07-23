@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: annotation-prevents-rollback
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: annotation-prevents-rollback
+          image: demoasjndksajdn-2

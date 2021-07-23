@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grace-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gracer
+  namespace: grace-test
+  labels:
+    app: gracer
+    "babylon.nais.io/grace-period": 0h
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gracer
+  template:
+    metadata:
+      labels:
+        app: gracer
+    spec:
+      containers:
+        - name: gracer
+          image: demoasjndksajdn
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grace-test-babylon
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-grace-cluster-role
+rules:
+  - apiGroups:
+      - ""
+      - "apps"
+    resources:
+      - "pods"
+      - "deployments"
+      - "replicasets"
+    verbs:
+      - "get"
+      - "delete"
+      - "list"
+      - "watch"
+      - "patch"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: babylon-grace-service-account
+  namespace: grace-test-babylon
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: babylon-grace-cluster-role-binding
+  namespace: grace-test-babylon
+subjects:
+  - kind: ServiceAccount
+    name: babylon-grace-service-account
+    namespace: grace-test-babylon
+roleRef:
+  kind: ClusterRole
+  name: babylon-grace-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grace-test
+  namespace: grace-test-babylon
+  labels:
+    app: grace-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: babylon-grace-test
+  template:
+    metadata:
+      labels:
+        app: babylon-grace-test
+    spec:
+      serviceAccountName: babylon-grace-service-account
+      containers:
+        - name: babylon-grace-test
+          imagePullPolicy: Never
+          env:
+            - name: ARMED
+              value: "true"
+            - name: LINKERD_DISABLED
+              value: "true"
+            - name: RESOURCE_AGE
+              value: "24h"
+            - name: TICKRATE
+              value: "5s"
+            - name: NOTIFICATION_TIMEOUT
+              value: "5s"
+            - name: USE_ALLOWED_NAMESPACES
+              value: "true"
+            - name: ALLOWED_NAMESPACES
+              value: "grace-test"
+            - name: LOG_LEVEL
+              value: "debug"
+          image: babylon
+          ports:
+            - containerPort: 8080
