@@ -34,7 +34,7 @@ func (s *Service) SlackChannel(ctx context.Context, ns string) string {
 		return defaultChannel
 	}
 
-	ch, ok := namespace.Annotations["platform-alerts-channel"]
+	ch, ok := namespace.Labels["platform-alerts-channel"]
 	if ok {
 		return ch
 	}
@@ -44,7 +44,7 @@ func (s *Service) SlackChannel(ctx context.Context, ns string) string {
 		return ch
 	}
 
-	ch, ok = namespace.Annotations["slack-channel"]
+	ch, ok = namespace.Labels["slack-channel"]
 	if !ok {
 		return ch
 	}
