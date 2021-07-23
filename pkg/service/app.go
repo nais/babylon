@@ -45,7 +45,7 @@ func (s *Service) SlackChannel(ctx context.Context, ns string) string {
 	}
 
 	ch, ok = namespace.Labels["slack-channel"]
-	if !ok {
+	if ok {
 		return ch
 	}
 
