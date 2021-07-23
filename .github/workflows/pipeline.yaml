@@ -25,7 +25,7 @@ jobs:
     name: Build and push Docker image
     needs: check
     runs-on: ubuntu-latest
-    if: "${{ github.ref }} == 'refs/heads/main'"
+    if: ${{ github.ref == 'refs/heads/main' }}
 
     steps:
       - uses: actions/checkout@v2
@@ -91,7 +91,7 @@ jobs:
       - docker
       - integrationTest
     runs-on: ubuntu-latest
-    if: "${{ github.ref }} == 'refs/heads/main'"
+    if: ${{ github.ref == 'refs/heads/main' }}
 
     strategy:
       matrix:
