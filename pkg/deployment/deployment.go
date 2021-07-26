@@ -255,7 +255,7 @@ func RollbackDeployment(
 		log.Fatal("encountered deployment without replicaset")
 	}
 
-	if len(rs.Items) == 1 || strings.ToLower(deployment.Annotations[config.RollbackAnnotation]) == "false" {
+	if len(rs.Items) == 1 || strings.ToLower(deployment.Labels[config.RollbackAnnotation]) == "false" {
 		err = DownscaleDeployment(ctx, s, deployment)
 
 		return nil, err
