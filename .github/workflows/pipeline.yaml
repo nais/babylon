@@ -99,6 +99,9 @@ jobs:
           - dev-gcp
           - dev-fss
           - dev-sbs
+          - prod-gcp
+          - prod-fss
+          - prod-sbs
 
     steps:
       - uses: actions/checkout@v2
