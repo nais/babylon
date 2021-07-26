@@ -9,7 +9,7 @@ import (
 
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/deployment"
-	logger2 "github.com/nais/babylon/pkg/logger"
+	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/metrics"
 	"github.com/nais/babylon/pkg/service"
 	naisiov1alpha1 "github.com/nais/liberator/pkg/apis/nais.io/v1alpha1"
@@ -69,7 +69,7 @@ func parseFlags() config.Config {
 
 func main() {
 	cfg := parseFlags()
-	logger2.Setup(cfg.LogLevel)
+	logger.Setup(cfg.LogLevel)
 
 	// TODO: perhaps timeout between each tick?
 	ctx := context.Background()
@@ -129,7 +129,7 @@ func gardener(ctx context.Context, s *service.Service) {
 		<-ticker
 		deployments := &appsv1.DeploymentList{}
 		err := s.Client.List(ctx, deployments)
-		if logger2.Logk8sError(err) {
+		if logger.Logk8sError(err) {
 			continue
 		}
 		deploymentFails := deployment.GetFailingDeployments(ctx, s, deployments)
