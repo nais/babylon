@@ -1,7 +1,7 @@
 ingresses:
   - "https://babylon.dev.intern.nav.no"
 
-log_level: "info"
+log_level: "debug"
 port: "8080"
 armed: "false"
 restart_threshold: "200"
