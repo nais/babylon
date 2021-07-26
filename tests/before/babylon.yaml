@@ -32,7 +32,9 @@ spec:
             - name: RESTART_THRESHOLD
               value: "1"
             - name: RESOURCE_AGE
-              value: "10s"
+              value: "1s"
+            - name: GRACEPERIOD
+              value: "1s"
             - name: TICKRATE
               value: "5s"
             - name: NOTIFICATION_TIMEOUT

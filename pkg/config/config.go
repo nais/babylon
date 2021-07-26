@@ -17,6 +17,7 @@ const (
 	DefaultRestartThreshold    = 200
 	DefaultAge                 = 10 * time.Minute
 	DefaultNotificationTimeout = 24 * time.Hour
+	DefaultGracePeriod         = 24 * time.Hour
 	NotificationAnnotation     = "babylon.nais.io/last-notified"
 	GracePeriodAnnotation      = "babylon.nais.io/grace-period"
 	RollbackAnnotation         = "babylon.nais.io/rollback"
@@ -33,6 +34,7 @@ type Config struct {
 	NotificationTimeout  time.Duration
 	UseAllowedNamespaces bool
 	AllowedNamespaces    []string
+	GracePeriod          time.Duration
 }
 
 func DefaultConfig() Config {
@@ -46,6 +48,7 @@ func DefaultConfig() Config {
 		NotificationTimeout:  DefaultNotificationTimeout,
 		UseAllowedNamespaces: false,
 		AllowedNamespaces:    []string{},
+		GracePeriod:          DefaultGracePeriod,
 	}
 }
 
@@ -93,20 +96,15 @@ func (c *Config) IsNamespaceAllowed(namespace string) bool {
 	return false
 }
 
-func (c *Config) graceDuration(deployment *appsv1.Deployment) time.Duration {
-	text, ok := deployment.Labels[GracePeriodAnnotation]
-	if !ok {
-		return c.ResourceAge
-	}
-
-	gracePeriod, err := time.ParseDuration(text)
+func (c *Config) GraceDuration(deployment *appsv1.Deployment) time.Duration {
+	gracePeriod, err := time.ParseDuration(deployment.Labels[GracePeriodAnnotation])
 	if err != nil {
-		return c.ResourceAge
+		return c.GracePeriod
 	}
 
 	return gracePeriod
 }
 
 func (c *Config) GraceCutoff(deployment *appsv1.Deployment) time.Time {
-	return time.Now().Add(-c.graceDuration(deployment))
+	return time.Now().Add(-c.GraceDuration(deployment))
 }

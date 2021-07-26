@@ -39,6 +39,8 @@ func parseFlags() config.Config {
 	// Timeout between notifying teams
 	notificationTimeout := config.GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
 
+	graceperiod := config.GetEnv("GRACEPERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
+
 	cfg.UseAllowedNamespaces = config.GetEnv("USE_ALLOWED_NAMESPACES",
 		fmt.Sprintf("%t", cfg.UseAllowedNamespaces)) == StringTrue
 
@@ -56,6 +58,10 @@ func parseFlags() config.Config {
 	nt, err := time.ParseDuration(notificationTimeout)
 	if err == nil {
 		cfg.NotificationTimeout = nt
+	}
+	gp, err := time.ParseDuration(graceperiod)
+	if err == nil {
+		cfg.GracePeriod = gp
 	}
 
 	rt, err := strconv.ParseInt(restartThreshold, 10, 32)
@@ -129,17 +135,29 @@ func gardener(ctx context.Context, s *service.Service) {
 		for _, deploy := range deploymentFails {
 			if deploy.Annotations[config.NotificationAnnotation] != "" {
 				lastNotified, err := time.Parse(time.RFC3339, deploy.Annotations[config.NotificationAnnotation])
-				if err != nil {
+				switch {
+				case err != nil:
 					log.Warnf("Could not parse %s for %s: %v", config.NotificationAnnotation, deploy.Name, err)
 
 					continue
-				}
+				case time.Since(lastNotified) < s.Config.GraceDuration(deploy):
+					log.Debugf(
+						"not yet ready to prune deployment %s, too early since last notification: %s",
+						deploy.Name, lastNotified.String())
 
-				if time.Since(lastNotified) < s.Config.NotificationTimeout {
+					continue
+				case time.Since(lastNotified) < s.Config.NotificationTimeout:
 					log.Debugf("Team already notified at %s, skipping deploy %s", lastNotified.String(), deploy.Name)
 
 					continue
 				}
+			} else {
+				err := deployment.FlagFailingDeployment(ctx, s, deploy)
+				if err != nil {
+					log.Errorf("failed to add notification annotation, err: %v", err)
+				}
+
+				continue
 			}
 
 			deployment.PruneFailingDeployment(ctx, s, deploy)

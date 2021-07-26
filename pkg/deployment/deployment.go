@@ -39,14 +39,15 @@ func GetFailingDeployments(
 
 DEPLOYMENTS:
 	for i, deployment := range deployments.Items {
-		graceCutoff := s.Config.GraceCutoff(&deployments.Items[i])
+		// graceCutoff := s.Config.GraceCutoff(&deployments.Items[i])
+		minDeploymentAge := time.Now().Add(-s.Config.ResourceAge)
 		enabled := deployment.Labels[config.EnabledAnnotation]
 		switch {
 		case !s.Config.IsNamespaceAllowed(deployment.Namespace):
 			log.Debugf("Namespace %s is not allowed, skipping", deployment.Namespace)
 
 			continue
-		case deployment.CreationTimestamp.After(graceCutoff):
+		case deployment.CreationTimestamp.After(minDeploymentAge):
 			log.Debugf("deployment %s too young, skipping (%v)", deployment.Name, deployment.CreationTimestamp)
 
 			continue
@@ -227,10 +228,8 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 }
 
 func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
-	log.Infof("")
 	patch := client.MergeFrom(deployment.DeepCopy())
 	deployment.Spec.Replicas = utils.Int32ptr(0)
-	deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 	err := s.Client.Patch(ctx, deployment, patch)
 	if err != nil {
 		return fmt.Errorf("failed to apply patch: %w", err)
@@ -277,7 +276,6 @@ func RollbackDeployment(
 	// Most recent (previous) replicaSet assumed to be at index = 1
 	desiredReplicaSet := rs.Items[1]
 	patch := client.MergeFrom(deployment.DeepCopy())
-	deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 	deployment.Spec.Template.Spec = desiredReplicaSet.Spec.Template.Spec
 	err = s.Client.Patch(ctx, deployment, patch)
 	if err != nil {
@@ -299,4 +297,14 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 		return
 	}
 	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace), rs)
+}
+
+func FlagFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
+	patch := client.MergeFrom(deployment.DeepCopy())
+	deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
+	err := s.Client.Patch(ctx, deployment, patch)
+
+	s.Metrics.IncTeamNotification(deployment, s.SlackChannel(ctx, deployment.Namespace), s.Config.GraceCutoff(deployment))
+
+	return fmt.Errorf("%w", err)
 }
