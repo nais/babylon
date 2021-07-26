@@ -72,6 +72,9 @@ func parseFlags() config.Config {
 func main() {
 	cfg := parseFlags()
 	logger2.Setup(cfg.LogLevel)
+	if err := cfg.ConfigureUnleash(); err != nil {
+		log.Fatal(err.Error())
+	}
 
 	// TODO: perhaps timeout between each tick?
 	ctx := context.Background()

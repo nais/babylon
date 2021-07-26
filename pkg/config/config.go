@@ -1,9 +1,13 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/Unleash/unleash-client-go/v3"
+	"github.com/nais/babylon/pkg/logger"
 )
 
 const (
@@ -40,6 +44,25 @@ func DefaultConfig() Config {
 		UseAllowedNamespaces: false,
 		AllowedNamespaces:    []string{},
 	}
+}
+
+func (c *Config) ConfigureUnleash() error {
+	unleashClient, err := unleash.NewClient(
+		unleash.WithListener(logger.UnleashListener{}),
+		unleash.WithAppName("babylon"),
+		unleash.WithUrl("https://unleash.nais.io/api/"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create unleash client: %w", err)
+	}
+
+	unleashClient.WaitForReady()
+
+	if unleashClient != nil {
+		c.AlertChannels = unleashClient.IsEnabled("babylon_alerts")
+	}
+
+	return nil
 }
 
 func GetEnv(name, fallback string) string {
