@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/metrics"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -16,12 +17,23 @@ type Service struct {
 	Config  *config.Config
 	Client  client.Client
 	Metrics *metrics.Metrics
+	Unleash *unleash.Client
 }
 
 const defaultChannel = "#babylon-alerts"
 
+func (s *Service) getUnleash(name string) bool {
+	if s.Unleash == nil {
+		log.Info("Unleashed client not configured, defaulting to false")
+
+		return false
+	}
+
+	return s.Unleash.IsEnabled(name)
+}
+
 func (s *Service) SlackChannel(ctx context.Context, ns string) string {
-	if !s.Config.AlertChannels {
+	if !s.getUnleash("babylon_alerts") {
 		return defaultChannel
 	}
 

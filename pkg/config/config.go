@@ -8,6 +8,7 @@ import (
 
 	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/nais/babylon/pkg/logger"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -20,7 +21,6 @@ const (
 
 type Config struct {
 	Armed                bool
-	AlertChannels        bool
 	LogLevel             string
 	Port                 string
 	TickRate             time.Duration
@@ -36,7 +36,6 @@ func DefaultConfig() Config {
 		LogLevel:             "info",
 		Port:                 "8080",
 		Armed:                false,
-		AlertChannels:        false,
 		TickRate:             DefaultTickRate,
 		RestartThreshold:     DefaultRestartThreshold,
 		ResourceAge:          DefaultAge,
@@ -46,23 +45,26 @@ func DefaultConfig() Config {
 	}
 }
 
-func (c *Config) ConfigureUnleash() error {
+func ConfigureUnleash() (*unleash.Client, error) {
+	val, ok := os.LookupEnv("UNLEASH_URL")
+	if !ok {
+		log.Info("No environment variable for Unleashed, skipped creating client")
+
+		return nil, nil
+	}
+
 	unleashClient, err := unleash.NewClient(
 		unleash.WithListener(logger.UnleashListener{}),
 		unleash.WithAppName("babylon"),
-		unleash.WithUrl("https://unleash.nais.io/api/"),
+		unleash.WithUrl(val),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create unleash client: %w", err)
+		return nil, fmt.Errorf("failed to create unleash client: %w", err)
 	}
 
 	unleashClient.WaitForReady()
 
-	if unleashClient != nil {
-		c.AlertChannels = unleashClient.IsEnabled("babylon_alerts")
-	}
-
-	return nil
+	return unleashClient, nil
 }
 
 func GetEnv(name, fallback string) string {

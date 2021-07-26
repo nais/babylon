@@ -14,8 +14,6 @@ spec:
       value: "{{port}}"
     - name: ARMED
       value: "{{armed}}"
-    - name: ALERT_CHANNELS
-      value: "{{alert_channels}}"
     - name: RESTART_THRESHOLD
       value: "{{restart_threshold}}"
     - name: RESOURCE_AGE
@@ -28,6 +26,10 @@ spec:
     {{/if}}
     - name: TICKRATE
       value: "{{tickrate}}"
+    {{#if unleash_url}}
+    - name: UNLEASH_URL
+      value: "{{unleash_url}}"
+    {{/if}}
     - name: NOTIFICATION_TIMEOUT
       value: "{{notification_timeout}}"
     {{#if linkerd_disabled}}

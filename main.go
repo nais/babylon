@@ -27,9 +27,6 @@ func parseFlags() config.Config {
 	// Whether to start destruction
 	cfg.Armed = config.GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == StringTrue
 
-	// Whether to alert individual team channels or sending alerts to #babylon-alerts
-	cfg.AlertChannels = config.GetEnv("ALERT_CHANNELS", fmt.Sprintf("%v", cfg.AlertChannels)) == StringTrue
-
 	cfg.LogLevel = config.GetEnv("LOG_LEVEL", cfg.LogLevel)
 	cfg.Port = config.GetEnv("PORT", cfg.Port)
 
@@ -72,9 +69,6 @@ func parseFlags() config.Config {
 func main() {
 	cfg := parseFlags()
 	logger2.Setup(cfg.LogLevel)
-	if err := cfg.ConfigureUnleash(); err != nil {
-		log.Fatal(err.Error())
-	}
 
 	// TODO: perhaps timeout between each tick?
 	ctx := context.Background()
@@ -108,7 +102,11 @@ func main() {
 		log.Info("Armed and dangerous! 🪖")
 	}
 
-	s := service.Service{Config: &cfg, Client: c, Metrics: &m}
+	unleash, err := config.ConfigureUnleash()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	s := service.Service{Config: &cfg, Client: c, Metrics: &m, Unleash: unleash}
 
 	go gardener(ctx, &s)
 
