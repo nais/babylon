@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
@@ -37,26 +39,32 @@ func GetFailingDeployments(
 
 DEPLOYMENTS:
 	for i, deployment := range deployments.Items {
-		if !s.Config.IsNamespaceAllowed(deployment.Namespace) {
+		graceCutoff := s.Config.GraceCutoff(&deployments.Items[i])
+		enabled := deployment.Labels[config.EnabledAnnotation]
+		switch {
+		case !s.Config.IsNamespaceAllowed(deployment.Namespace):
 			log.Debugf("Namespace %s is not allowed, skipping", deployment.Namespace)
 
 			continue
+		case deployment.CreationTimestamp.After(graceCutoff):
+			log.Debugf("deployment %s too young, skipping (%v)", deployment.Name, deployment.CreationTimestamp)
+
+			continue
+		case strings.ToLower(enabled) == "false":
+			log.Debugf("deployment %s has disabled Babylon, skipping", deployment.Name)
+
+			continue
 		}
+
 		rs, err := getReplicaSetsByDeployment(ctx, s, &deployments.Items[i])
 		if err != nil {
 			log.Errorf("Could not get replicaSet for deployment %s, %v", deployment.Name, err)
 
 			continue
 		}
-		log.Infof("Checking deployment: %s", deployment.Name)
+		log.Debugf("Checking deployment: %s", deployment.Name)
 
-		gracePeriod := s.GraceCutoff(ctx, &deployments.Items[i])
-		for j, r := range rs.Items {
-			if r.CreationTimestamp.After(gracePeriod) {
-				log.Infof("deployment %s too young, skipping (%v)", r.Name, r.CreationTimestamp)
-
-				continue
-			}
+		for j := range rs.Items {
 			if allPodsFailingInReplicaSet(ctx, &rs.Items[j], s) || checkFailingInitContainers(ctx, s, &rs.Items[j]) {
 				fails = append(fails, &deployments.Items[i])
 
@@ -213,9 +221,22 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 			s.Metrics.IncRuleActivations(rs, reason)
 		}
 	}
-	log.Infof("%d/%d failing pods in replicaset %s", failedPods, len(pods.Items), rs.Name)
+	log.Debugf("%d/%d failing pods in replicaset %s", failedPods, len(pods.Items), rs.Name)
 
 	return failedPods == len(pods.Items)
+}
+
+func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
+	log.Infof("")
+	patch := client.MergeFrom(deployment.DeepCopy())
+	deployment.Spec.Replicas = utils.Int32ptr(0)
+	deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
+	err := s.Client.Patch(ctx, deployment, patch)
+	if err != nil {
+		return fmt.Errorf("failed to apply patch: %w", err)
+	}
+
+	return nil
 }
 
 func RollbackDeployment(
@@ -224,32 +245,37 @@ func RollbackDeployment(
 	deployment *appsv1.Deployment) (*appsv1.ReplicaSet, error) {
 	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
 	if err != nil {
-		log.Debugf("Could not find replicasets for deploy %s", deployment.Name)
+		log.Errorf("Could not find replicasets for deploy %s", deployment.Name)
 
 		return nil, err
 	}
-	// 0 replicaSets assumed to not be possible
-	if len(rs.Items) == 1 {
-		log.Infof("Deployment %s has only 1 replicaset", deployment.Name)
-		patch := client.MergeFrom(deployment.DeepCopy())
-		deployment.Spec.Replicas = utils.Int32ptr(0)
-		deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
-		err := s.Client.Patch(ctx, deployment, patch)
-		if err != nil {
-			return nil, fmt.Errorf("failed to apply patch: %w", err)
-		}
 
-		return nil, nil
+	if len(rs.Items) == 0 {
+		// 0 replicaSets assumed to not be possible
+		log.Fatal("encountered deployment without replicaset")
 	}
-	// Most recent replicaSet assumed to be at index = 1
-	log.Infof("Rolling back deployment %s to previous revision", deployment.Name)
+
+	if len(rs.Items) == 1 || strings.ToLower(deployment.Annotations[config.RollbackAnnotation]) == "false" {
+		err = DownscaleDeployment(ctx, s, deployment)
+
+		return nil, err
+	}
 
 	sort.Slice(rs.Items, func(i, j int) bool {
-		return rs.Items[i].Annotations["deployment.kubernetes.io/revision"] >
-			rs.Items[j].Annotations["deployment.kubernetes.io/revision"]
+		iRev, err := strconv.Atoi(rs.Items[i].Annotations["deployment.kubernetes.io/revision"])
+		if err != nil {
+			log.Fatalf("invalid revision on replicaset %s, got error: %v", rs.Items[i].Name, err)
+		}
+		jRev, err := strconv.Atoi(rs.Items[j].Annotations["deployment.kubernetes.io/revision"])
+		if err != nil {
+			log.Fatalf("invalid revision on replicaset %s, got error: %v", rs.Items[j].Name, err)
+		}
+
+		return iRev > jRev
 	})
+
+	// Most recent (previous) replicaSet assumed to be at index = 1
 	desiredReplicaSet := rs.Items[1]
-	desiredReplicaSet.Spec.Replicas = utils.Int32ptr(0)
 	patch := client.MergeFrom(deployment.DeepCopy())
 	deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 	deployment.Spec.Template.Spec = desiredReplicaSet.Spec.Template.Spec

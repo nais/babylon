@@ -9,6 +9,7 @@ import (
 	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/nais/babylon/pkg/logger"
 	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 const (
@@ -16,7 +17,10 @@ const (
 	DefaultRestartThreshold    = 200
 	DefaultAge                 = 10 * time.Minute
 	DefaultNotificationTimeout = 24 * time.Hour
-	NotificationAnnotation     = "nais.babylon/last_notified"
+	NotificationAnnotation     = "babylon.nais.io/last-notified"
+	GracePeriodAnnotation      = "babylon.nais.io/grace-period"
+	RollbackAnnotation         = "babylon.nais.io/rollback"
+	EnabledAnnotation          = "babylon.nais.io/enabled"
 )
 
 type Config struct {
@@ -87,4 +91,22 @@ func (c *Config) IsNamespaceAllowed(namespace string) bool {
 	}
 
 	return false
+}
+
+func (c *Config) graceDuration(deployment *appsv1.Deployment) time.Duration {
+	text, ok := deployment.Labels[GracePeriodAnnotation]
+	if !ok {
+		return c.ResourceAge
+	}
+
+	gracePeriod, err := time.ParseDuration(text)
+	if err != nil {
+		return c.ResourceAge
+	}
+
+	return gracePeriod
+}
+
+func (c *Config) GraceCutoff(deployment *appsv1.Deployment) time.Time {
+	return time.Now().Add(-c.graceDuration(deployment))
 }
