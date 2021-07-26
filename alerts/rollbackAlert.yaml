@@ -15,7 +15,7 @@ spec:
       send_resolved: false
       username: Babylon - Testing
   alerts:
-    - alert: Feilende applikasjon detektert
+    - alert: Feilende applikasjon håndtert
       expr: 'increase(babylon_deployment_rollbacks_total[5m]) > 1'
       for: 0s
       action: |
@@ -38,5 +38,27 @@ spec:
         \{{- else }}
         Vi har nedskalert deploymentet til null replicas.
         \{{- end }}
+      documentation: https://github.com/nais/babylon/README.md
+      severity: warning
+    - alert: Feilende applikasjon detektert
+      expr: 'increase(babylon_team_notifications_total[5m]) > 1'
+      for: 0s
+      action: |
+        Slå applikasjonen av og på igjen, utfør `rollback`,
+        eller slett applikasjonen.
+
+        Kan også være nyttig å:
+        - Les app logs (kubectl logs appname).
+        - Les Application events (kubectl describe deployment appname)
+
+        Om du ønsker å motta disse meldingene i en annen kanal,
+        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
+        https://github.com/navikt/teams.
+        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
+        namespace, i alfabetisk rekkefølge.
+      description: |
+        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
+        Dersom dere ikke utfører endringer, så vil Babylon nedskalere applikasjonen
+        tidligst "\{{ $labels.grace_cutoff }}".
       documentation: https://github.com/nais/babylon/README.md
       severity: warning

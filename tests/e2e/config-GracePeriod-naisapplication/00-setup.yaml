@@ -96,6 +96,8 @@ spec:
             - name: LINKERD_DISABLED
               value: "true"
             - name: RESOURCE_AGE
+              value: "10s"
+            - name: GRACEPERIOD
               value: "24h"
             - name: TICKRATE
               value: "5s"
