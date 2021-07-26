@@ -3,15 +3,12 @@ package service
 import (
 	"context"
 	"sort"
-	"time"
 
 	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/metrics"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	nais_io_v1alpha1 "github.com/nais/liberator/pkg/apis/nais.io/v1alpha1"
 	log "github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -92,36 +89,4 @@ func (s *Service) existingAlertChannel(ctx context.Context, ns string) (string, 
 	}
 
 	return "", false
-}
-
-func (s *Service) graceDuration(ctx context.Context, deployment *appsv1.Deployment) time.Duration {
-	if len(deployment.OwnerReferences) < 1 {
-		log.Warnf("deployment %v is missing OwnerReferences to Nais Application", deployment)
-
-		return s.Config.ResourceAge
-	}
-	naisapp := &nais_io_v1alpha1.Application{}
-	key := client.ObjectKey{
-		Namespace: deployment.Namespace,
-		Name:      deployment.OwnerReferences[0].Name,
-	}
-	err := s.Client.Get(ctx, key, naisapp)
-	if err != nil {
-		log.Warnf("deployment %v has an OwnerReferences which is not an NaisApplication, got error %v", deployment, err)
-
-		return s.Config.ResourceAge
-	}
-
-	gracePeriod, err := time.ParseDuration(naisapp.Spec.Cleanup.GracePeriod)
-	if err != nil {
-		log.Errorf("invalid duration %v, error %v", naisapp.Spec.Cleanup.GracePeriod, err)
-
-		return s.Config.ResourceAge
-	}
-
-	return gracePeriod
-}
-
-func (s *Service) GraceCutoff(ctx context.Context, deployment *appsv1.Deployment) time.Time {
-	return time.Now().Add(-s.graceDuration(ctx, deployment))
 }
