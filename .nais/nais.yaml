@@ -20,6 +20,12 @@ spec:
       value: "{{restart_threshold}}"
     - name: RESOURCE_AGE
       value: "{{resource_age}}"
+    {{#if use_allowed_namespaces}}
+    - name: USE_ALLOWED_NAMESPACES
+      value: "{{use_allowed_namespaces}}"
+    - name: ALLOWED_NAMESPACES
+      value: "{{allowed_namespaces}}"
+    {{/if}}
     - name: TICKRATE
       value: "{{tickrate}}"
     - name: NOTIFICATION_TIMEOUT
