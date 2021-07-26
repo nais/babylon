@@ -33,7 +33,7 @@ spec:
               value: "1"
             - name: RESOURCE_AGE
               value: "1s"
-            - name: GRACEPERIOD
+            - name: GRACE_PERIOD
               value: "1s"
             - name: TICKRATE
               value: "5s"

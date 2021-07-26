@@ -97,7 +97,7 @@ spec:
               value: "true"
             - name: RESOURCE_AGE
               value: "10s"
-            - name: GRACEPERIOD
+            - name: GRACE_PERIOD
               value: "24h"
             - name: TICKRATE
               value: "5s"

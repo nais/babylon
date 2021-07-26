@@ -39,7 +39,7 @@ func parseFlags() config.Config {
 	// Timeout between notifying teams
 	notificationTimeout := config.GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
 
-	graceperiod := config.GetEnv("GRACEPERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
+	graceperiod := config.GetEnv("GRACE_PERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
 
 	cfg.UseAllowedNamespaces = config.GetEnv("USE_ALLOWED_NAMESPACES",
 		fmt.Sprintf("%t", cfg.UseAllowedNamespaces)) == StringTrue
