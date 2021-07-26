@@ -19,7 +19,10 @@
 - Resource age (default 10 minutes)
   - Any resources younger than this threshold will not be checked
 - Last notification sent (default 24 hours)
-  - If a resource (currently only deployments) has been annotated with `nais.babylon/last_notified` it is skipped while the notification is younger than the configured value
+  - If a resource (currently only deployments) has been annotated with `babylon.nais.io/last-notified` it is skipped while the notification is younger than the configured value
+- Grace period (default 24 hours)
+  - The grace period starts with the first notification related to a resource. Resources will be handled 
+    (e.g. deleted, downscaled, or rolled back) at some point after the grace period has ended. 
 - Restart threshold (default 200 restarts)
   - During `CrashLoopBackOff` the pod will be ignored while the number of restarts is less than the threshold
 - Tick rate (default 15 minutes)
