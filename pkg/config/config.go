@@ -88,6 +88,9 @@ func (c *Config) IsNamespaceAllowed(namespace string) bool {
 	}
 
 	for i := range c.AllowedNamespaces {
+		if c.AllowedNamespaces[i] == "" {
+			continue
+		}
 		if strings.Contains(namespace, c.AllowedNamespaces[i]) || strings.Contains(c.AllowedNamespaces[i], namespace) {
 			return true
 		}
