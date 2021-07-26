@@ -34,8 +34,6 @@ func GetFailingDeployments(
 	s *service.Service,
 	deployments *appsv1.DeploymentList) []*appsv1.Deployment {
 	var fails []*appsv1.Deployment
-	checkTime := time.Now()
-	ageBarrier := checkTime.Add(-s.Config.ResourceAge)
 
 DEPLOYMENTS:
 	for i, deployment := range deployments.Items {
@@ -52,8 +50,9 @@ DEPLOYMENTS:
 		}
 		log.Infof("Checking deployment: %s", deployment.Name)
 
+		gracePeriod := s.GraceCutoff(ctx, &deployments.Items[i])
 		for j, r := range rs.Items {
-			if r.CreationTimestamp.After(ageBarrier) {
+			if r.CreationTimestamp.After(gracePeriod) {
 				log.Infof("deployment %s too young, skipping (%v)", r.Name, r.CreationTimestamp)
 
 				continue
