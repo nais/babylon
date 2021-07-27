@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -20,8 +18,9 @@ import (
 )
 
 var (
-	ErrPatchFailed           = errors.New("failed to apply patch")
-	ErrFetchReplicasetFailed = errors.New("failed to fetch replicasets")
+	ErrPatchFailed              = errors.New("failed to apply patch")
+	ErrFetchReplicasetFailed    = errors.New("failed to fetch replicasets")
+	ErrNoRollbackCandidateFound = errors.New("no rollback candidate found")
 )
 
 const (
@@ -29,6 +28,8 @@ const (
 	ErrImagePull               = "ErrImagePull"
 	CrashLoopBackOff           = "CrashLoopBackOff"
 	CreateContainerConfigError = "CreateContainerConfigError"
+	RollbackCauseAnnotation    = "rolled back by babylon"
+	ChangeCauseAnnotationKey   = "kubernetes.io/change-cause"
 )
 
 func GetFailingDeployments(
@@ -41,7 +42,7 @@ DEPLOYMENTS:
 	for i, deployment := range deployments.Items {
 		// graceCutoff := s.Config.GraceCutoff(&deployments.Items[i])
 		minDeploymentAge := time.Now().Add(-s.Config.ResourceAge)
-		enabled := deployment.Labels[config.EnabledAnnotation]
+		enabled := deployment.Labels[config.EnabledLabel]
 		switch {
 		case deployment.CreationTimestamp.After(minDeploymentAge):
 			log.Debugf("deployment %s too young, skipping (%v)", deployment.Name, deployment.CreationTimestamp)
@@ -237,6 +238,50 @@ func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *ap
 func RollbackDeployment(
 	ctx context.Context,
 	s *service.Service,
+	deployment *appsv1.Deployment,
+	replicaSet *appsv1.ReplicaSet) error {
+	patch := client.MergeFrom(deployment.DeepCopy())
+	deployment.Annotations[ChangeCauseAnnotationKey] = RollbackCauseAnnotation
+	deployment.Spec.Template.Spec = replicaSet.Spec.Template.Spec
+	err := s.Client.Patch(ctx, deployment, patch)
+	if err != nil {
+		log.Errorf("Failed to patch deployment: %+v", err)
+
+		return ErrPatchFailed
+	}
+	log.Infof("Rolled back deployment %s to revision: %s",
+		deployment.Name, replicaSet.Annotations["deployment.kubernetes.io/revision"])
+
+	return nil
+}
+
+func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
+	rollbacksDisabled := deployment.Labels[config.RollbackLabel] == "false"
+	candidate, err := GetRollbackCandidate(ctx, s, deployment)
+	switch {
+	case errors.Is(err, ErrNoRollbackCandidateFound) || rollbacksDisabled:
+		err = DownscaleDeployment(ctx, s, deployment)
+		if err != nil {
+			log.Errorf("Downscale failed, %v", err)
+		}
+	case err != nil:
+		log.Errorf("getting candidate, %v", err)
+	default:
+		err = RollbackDeployment(ctx, s, deployment, candidate)
+		if err != nil {
+			log.Errorf("Rollback failed: %v", err)
+
+			return
+		}
+
+		s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed,
+			s.SlackChannel(ctx, deployment.Namespace), candidate)
+	}
+}
+
+func GetRollbackCandidate(
+	ctx context.Context,
+	s *service.Service,
 	deployment *appsv1.Deployment) (*appsv1.ReplicaSet, error) {
 	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
 	if err != nil {
@@ -250,49 +295,19 @@ func RollbackDeployment(
 		log.Fatal("encountered deployment without replicaset")
 	}
 
-	if len(rs.Items) == 1 || strings.ToLower(deployment.Labels[config.RollbackAnnotation]) == "false" {
-		err = DownscaleDeployment(ctx, s, deployment)
-
-		return nil, err
-	}
-
-	sort.Slice(rs.Items, func(i, j int) bool {
-		iRev, err := strconv.Atoi(rs.Items[i].Annotations["deployment.kubernetes.io/revision"])
-		if err != nil {
-			log.Fatalf("invalid revision on replicaset %s, got error: %v", rs.Items[i].Name, err)
-		}
-		jRev, err := strconv.Atoi(rs.Items[j].Annotations["deployment.kubernetes.io/revision"])
-		if err != nil {
-			log.Fatalf("invalid revision on replicaset %s, got error: %v", rs.Items[j].Name, err)
+	for _, replicaSet := range rs.Items {
+		if replicaSet.Annotations["deployment.kubernetes.io/revision"] ==
+			deployment.Annotations["deployment.kubernetes.io/revision"] {
+			continue
 		}
 
-		return iRev > jRev
-	})
-
-	// Most recent (previous) replicaSet assumed to be at index = 1
-	desiredReplicaSet := rs.Items[1]
-	patch := client.MergeFrom(deployment.DeepCopy())
-	deployment.Spec.Template.Spec = desiredReplicaSet.Spec.Template.Spec
-	err = s.Client.Patch(ctx, deployment, patch)
-	if err != nil {
-		log.Errorf("Failed to patch deployment: %+v", err)
-
-		return nil, ErrPatchFailed
+		// if replicaset has running pods (good state)
+		if *replicaSet.Spec.Replicas > 0 {
+			return &replicaSet, nil
+		}
 	}
-	log.Infof("Rolled back deployment %s to revision: %s",
-		deployment.Name, desiredReplicaSet.Annotations["deployment.kubernetes.io/revision"])
 
-	return &desiredReplicaSet, nil
-}
-
-func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
-	rs, err := RollbackDeployment(ctx, s, deployment)
-	if err != nil {
-		log.Errorf("Rollback failed: %+v", err)
-
-		return
-	}
-	s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace), rs)
+	return nil, ErrNoRollbackCandidateFound
 }
 
 func FlagFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {

@@ -120,7 +120,9 @@ func gardener(ctx context.Context, s *service.Service) {
 				continue
 			}
 
-			deployment.PruneFailingDeployment(ctx, s, deploy)
+			if deploy.Annotations[deployment.ChangeCauseAnnotationKey] != deployment.RollbackCauseAnnotation {
+				deployment.PruneFailingDeployment(ctx, s, deploy)
+			}
 		}
 	}
 }

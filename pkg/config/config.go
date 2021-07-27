@@ -24,9 +24,9 @@ const (
 	DefaultGracePeriod         = 24 * time.Hour
 	StringTrue                 = "true"
 	NotificationAnnotation     = "babylon.nais.io/last-notified"
-	GracePeriodAnnotation      = "babylon.nais.io/grace-period"
-	RollbackAnnotation         = "babylon.nais.io/rollback"
-	EnabledAnnotation          = "babylon.nais.io/enabled"
+	GracePeriodLabel           = "babylon.nais.io/grace-period"
+	RollbackLabel              = "babylon.nais.io/rollback"
+	EnabledLabel               = "babylon.nais.io/enabled"
 )
 
 type Config struct {
@@ -182,7 +182,7 @@ func (c *Config) IsNamespaceAllowed(namespace string) bool {
 }
 
 func (c *Config) GraceDuration(deployment *appsv1.Deployment) time.Duration {
-	gracePeriod, err := time.ParseDuration(deployment.Labels[GracePeriodAnnotation])
+	gracePeriod, err := time.ParseDuration(deployment.Labels[GracePeriodLabel])
 	if err != nil {
 		return c.GracePeriod
 	}
