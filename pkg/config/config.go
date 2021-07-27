@@ -3,12 +3,16 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/nais/babylon/pkg/logger"
+	"github.com/prometheus/alertmanager/config"
+	"github.com/prometheus/alertmanager/timeinterval"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -18,6 +22,7 @@ const (
 	DefaultAge                 = 10 * time.Minute
 	DefaultNotificationTimeout = 24 * time.Hour
 	DefaultGracePeriod         = 24 * time.Hour
+	StringTrue                 = "true"
 	NotificationAnnotation     = "babylon.nais.io/last-notified"
 	GracePeriodAnnotation      = "babylon.nais.io/grace-period"
 	RollbackAnnotation         = "babylon.nais.io/rollback"
@@ -35,6 +40,7 @@ type Config struct {
 	UseAllowedNamespaces bool
 	AllowedNamespaces    []string
 	GracePeriod          time.Duration
+	ActiveTimeIntervals  map[string][]timeinterval.TimeInterval
 }
 
 func DefaultConfig() Config {
@@ -49,7 +55,79 @@ func DefaultConfig() Config {
 		UseAllowedNamespaces: false,
 		AllowedNamespaces:    []string{},
 		GracePeriod:          DefaultGracePeriod,
+		ActiveTimeIntervals:  make(map[string][]timeinterval.TimeInterval),
 	}
+}
+
+//nolint:funlen
+func ParseConfig() Config {
+	cfg := DefaultConfig()
+	// Whether to start destruction
+	cfg.Armed = GetEnv("ARMED", fmt.Sprintf("%v", cfg.Armed)) == StringTrue
+
+	cfg.LogLevel = GetEnv("LOG_LEVEL", cfg.LogLevel)
+	cfg.Port = GetEnv("PORT", cfg.Port)
+
+	tickRate := GetEnv("TICKRATE", cfg.TickRate.String())
+	restartThreshold := GetEnv("RESTART_THRESHOLD", fmt.Sprintf("%d", cfg.RestartThreshold))
+
+	// Resource age needed before rollback
+	resourceAge := GetEnv("RESOURCE_AGE", "10m")
+
+	// Timeout between notifying teams
+	notificationTimeout := GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
+
+	graceperiod := GetEnv("GRACE_PERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
+
+	cfg.UseAllowedNamespaces = GetEnv("USE_ALLOWED_NAMESPACES",
+		fmt.Sprintf("%t", cfg.UseAllowedNamespaces)) == StringTrue
+
+	namespacesFromEnv := GetEnv("ALLOWED_NAMESPACES", "")
+	cfg.AllowedNamespaces = strings.Split(namespacesFromEnv, ",")
+
+	duration, err := time.ParseDuration(tickRate)
+	if err == nil {
+		cfg.TickRate = duration
+	}
+	age, err := time.ParseDuration(resourceAge)
+	if err == nil {
+		cfg.ResourceAge = age
+	}
+	nt, err := time.ParseDuration(notificationTimeout)
+	if err == nil {
+		cfg.NotificationTimeout = nt
+	}
+	gp, err := time.ParseDuration(graceperiod)
+	if err == nil {
+		cfg.GracePeriod = gp
+	}
+
+	rt, err := strconv.ParseInt(restartThreshold, 10, 32)
+	if err == nil {
+		cfg.RestartThreshold = int32(rt)
+	}
+
+	var intervals []config.MuteTimeInterval
+	file, err := os.ReadFile("/etc/config/working-hours.yaml")
+	if err != nil {
+		log.Infof("error reading working hours: %v", err)
+
+		return cfg
+	}
+
+	err = yaml.Unmarshal(file, &intervals)
+	if err != nil {
+		log.Infof("error parsing working hours: %v", err)
+
+		return cfg
+	}
+
+	for _, mti := range intervals {
+		cfg.ActiveTimeIntervals[mti.Name] = mti.TimeIntervals
+	}
+	log.Infof("working hours: %v", cfg.ActiveTimeIntervals)
+
+	return cfg
 }
 
 func ConfigureUnleash() (*unleash.Client, error) {
@@ -110,4 +188,16 @@ func (c *Config) GraceDuration(deployment *appsv1.Deployment) time.Duration {
 
 func (c *Config) GraceCutoff(deployment *appsv1.Deployment) time.Time {
 	return time.Now().Add(-c.GraceDuration(deployment))
+}
+
+func (c *Config) InActivePeriod(time time.Time) bool {
+	for _, t := range c.ActiveTimeIntervals {
+		for _, i := range t {
+			if i.ContainsTime(time) {
+				return true
+			}
+		}
+	}
+
+	return false
 }

@@ -11,6 +11,13 @@ to `true`, and add your namespaces to the environment variable `ALLOWED_NAMESPAC
 
 **Note:** `ALLOWED_NAMESPACES` is a comma seperated string without whitespace. 
 
+## Configuring working hours
+
+Working hours can be configured by creating a file called `working-hours.yaml` in `/etc/config`, the syntax used
+is the exact same as Prometheus' Alertmanager, see their
+[docs](https://www.prometheus.io/docs/alerting/latest/configuration/#mute_time_interval).
+Working hours only limit when resource pruning, limiting when alerts are received is awaiting features
+in Alerterator.
 
 ## Using `make`
 
