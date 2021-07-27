@@ -8,7 +8,7 @@ deploy-local:
 	# apply minikube docker variables and build image
 	@eval $$(minikube docker-env --shell=bash); \
 	$(MAKE) docker-build-fast
-	kubectl delete -f minikube.yaml --context minikube
+	kubectl delete -f minikube.yaml --context minikube || true
 	kubectl apply -f minikube.yaml --context minikube
 
 docker-build:
