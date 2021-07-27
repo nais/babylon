@@ -43,10 +43,6 @@ DEPLOYMENTS:
 		minDeploymentAge := time.Now().Add(-s.Config.ResourceAge)
 		enabled := deployment.Labels[config.EnabledAnnotation]
 		switch {
-		case !s.Config.IsNamespaceAllowed(deployment.Namespace):
-			log.Debugf("Namespace %s is not allowed, skipping", deployment.Namespace)
-
-			continue
 		case deployment.CreationTimestamp.After(minDeploymentAge):
 			log.Debugf("deployment %s too young, skipping (%v)", deployment.Name, deployment.CreationTimestamp)
 

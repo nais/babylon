@@ -67,6 +67,7 @@ func main() {
 	log.Fatal(mgr.Start(ctx))
 }
 
+//nolint:cyclop
 func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
 	ticker := time.Tick(s.Config.TickRate)
@@ -78,7 +79,15 @@ func gardener(ctx context.Context, s *service.Service) {
 		if logger.Logk8sError(err) {
 			continue
 		}
-		deploymentFails := deployment.GetFailingDeployments(ctx, s, deployments)
+
+		fails := deployment.GetFailingDeployments(ctx, s, deployments)
+		var deploymentFails []*appsv1.Deployment
+		for _, f := range fails {
+			if s.Config.IsNamespaceAllowed(f.Namespace) {
+				deploymentFails = append(deploymentFails, f)
+			}
+		}
+
 		for _, deploy := range deploymentFails {
 			if deploy.Annotations[config.NotificationAnnotation] != "" {
 				lastNotified, err := time.Parse(time.RFC3339, deploy.Annotations[config.NotificationAnnotation])
