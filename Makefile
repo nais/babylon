@@ -26,6 +26,8 @@ hooks:
 
 test: ## Run tests.
 	if [ "$(shell minikube status | grep host | rev | cut -d' ' -f1 | rev)" == "Stopped" ]; then minikube start; fi
+	kubectl delete deploy -n=babylon-test babylon-test --context=minikube || true
+	kubectl wait deploy/babylon-test -n=babylon-test --context=minikube --for=delete || true
 	kubectx minikube
 	# apply minikube docker variables and build image
 	@eval $$(minikube docker-env --shell=bash); \
