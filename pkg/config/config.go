@@ -55,7 +55,11 @@ func DefaultConfig() Config {
 		UseAllowedNamespaces: false,
 		AllowedNamespaces:    []string{},
 		GracePeriod:          DefaultGracePeriod,
-		ActiveTimeIntervals:  make(map[string][]timeinterval.TimeInterval),
+		ActiveTimeIntervals: map[string][]timeinterval.TimeInterval{
+			"defaultAlways": {
+				{Times: []timeinterval.TimeRange{{StartMinute: 0, EndMinute: 1440}}},
+			},
+		},
 	}
 }
 
