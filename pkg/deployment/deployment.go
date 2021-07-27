@@ -303,8 +303,11 @@ func FlagFailingDeployment(ctx context.Context, s *service.Service, deployment *
 	patch := client.MergeFrom(deployment.DeepCopy())
 	deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 	err := s.Client.Patch(ctx, deployment, patch)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
 
 	s.Metrics.IncTeamNotification(deployment, s.SlackChannel(ctx, deployment.Namespace), s.Config.GraceCutoff(deployment))
 
-	return fmt.Errorf("%w", err)
+	return nil
 }
