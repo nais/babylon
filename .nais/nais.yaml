@@ -75,7 +75,7 @@ data:
         - times:
           - start_time: 08:00
             end_time: 15:00
-        - weekdays: ["monday:friday"
+        - weekdays: ["monday:friday"]
 metadata:
   namespace: babylon
   name: babylon-working-hours
