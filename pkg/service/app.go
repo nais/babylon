@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/Unleash/unleash-client-go/v3"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/metrics"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -14,22 +15,23 @@ import (
 )
 
 type Service struct {
-	Config  *config.Config
-	Client  client.Client
-	Metrics *metrics.Metrics
-	Unleash *unleash.Client
+	Config        *config.Config
+	Client        client.Client
+	Metrics       *metrics.Metrics
+	UnleashClient *unleash.Client
+	InfluxClient  influxdb2.Client
 }
 
 const defaultChannel = "#babylon-alerts"
 
 func (s *Service) getUnleash(name string) bool {
-	if s.Unleash == nil {
+	if s.UnleashClient == nil {
 		log.Info("Unleashed client not configured, defaulting to false")
 
 		return false
 	}
 
-	return s.Unleash.IsEnabled(name)
+	return s.UnleashClient.IsEnabled(name)
 }
 
 func (s *Service) SlackChannel(ctx context.Context, ns string) string {
