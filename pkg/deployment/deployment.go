@@ -219,7 +219,7 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 		if fail, reason := ShouldPodBeDeleted(s.Config, &pods.Items[i]); fail {
 			failedPods++
 			reasons = append(reasons, reason)
-			s.Metrics.IncRuleActivations(rs, reason)
+			s.Metrics.IncRuleActivations(s.InfluxClient, rs, reason)
 		}
 	}
 

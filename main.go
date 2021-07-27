@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/deployment"
 	"github.com/nais/babylon/pkg/logger"
@@ -60,7 +61,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	s := service.Service{Config: &cfg, Client: c, Metrics: &m, Unleash: unleash}
+
+	userName := "my-user"
+	password := "my-password"
+	influxC := influxdb2.NewClient("http://localhost:8086", fmt.Sprintf("%s:%s", userName, password))
+
+	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC}
 
 	go gardener(ctx, &s)
 

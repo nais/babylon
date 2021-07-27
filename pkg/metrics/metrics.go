@@ -1,9 +1,15 @@
 package metrics
 
 import (
+	"context"
 	"strconv"
 	"time"
 
+	"github.com/nais/babylon/pkg/config"
+
+	"github.com/nais/babylon/pkg/config"
+
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -101,7 +107,10 @@ func (m *Metrics) IncDeploymentRollbacks(
 	metric.Inc()
 }
 
-func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
+func (m *Metrics) IncRuleActivations(
+	influxC influxdb2.Client,
+	rs *appsv1.ReplicaSet,
+	reason string) {
 	team, ok := rs.Labels["team"]
 
 	if !ok {
@@ -123,6 +132,17 @@ func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
 	log.Debugf("RuleActivationsMetric incremented by team: %s", team)
 
 	metric.Inc()
+
+	writeAPI := influxC.WriteAPIBlocking("", "default")
+	p := influxdb2.NewPoint("rule-activation",
+		map[string]string{"deployment": deployment, "team": team, "reason": reason},
+		map[string]interface{}{},
+		time.Now())
+
+	err = writeAPI.WritePoint(context.Background(), p)
+	if err != nil {
+		log.Errorf("InfluxClient write error: %v", err)
+	}
 }
 
 func (m *Metrics) IncTeamNotification(deployment *appsv1.Deployment, channel string, graceCutoff time.Time) {

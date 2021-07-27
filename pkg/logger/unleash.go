@@ -16,11 +16,11 @@ func (l UnleashListener) OnError(err error) {
 }
 
 func (l UnleashListener) OnReady() {
-	log.Info("Unleash ready")
+	log.Info("Unleash client ready")
 }
 
 func (l UnleashListener) OnRegistered(payload unleash.ClientData) {
-	log.Infof("Unleash registered: %+v", payload)
+	log.Infof("Unleash client registered: %+v", payload)
 }
 
 func (l UnleashListener) OnSent(payload unleash.MetricsData) {
