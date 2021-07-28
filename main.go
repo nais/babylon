@@ -80,6 +80,12 @@ func gardener(ctx context.Context, s *service.Service) {
 			continue
 		}
 
+		if !s.Config.InActivePeriod(time.Now()) {
+			log.Debug("sleeping due to inactive period")
+
+			continue
+		}
+
 		fails := deployment.GetFailingDeployments(ctx, s, deployments)
 		var deploymentFails []*appsv1.Deployment
 		for _, f := range fails {
@@ -104,10 +110,6 @@ func gardener(ctx context.Context, s *service.Service) {
 					continue
 				case time.Since(lastNotified) < s.Config.NotificationTimeout:
 					log.Debugf("Team already notified at %s, skipping deploy %s", lastNotified.String(), deploy.Name)
-
-					continue
-				case !s.Config.InActivePeriod(time.Now()):
-					log.Debug("sleeping due to inactive period")
 
 					continue
 				}
