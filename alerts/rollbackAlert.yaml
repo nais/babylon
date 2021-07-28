@@ -59,27 +59,27 @@ spec:
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon nedskalert
-        expr: 'increase(babylon_deployment_downscale_total[5m]) > 1'
-        for: 0s
-        action: |
-          Slå applikasjonen av og på igjen, utfør `rollback`,
-          eller slett applikasjonen.
+      expr: 'increase(babylon_deployment_downscale_total[5m]) > 1'
+      for: 0s
+      action: |
+        Slå applikasjonen av og på igjen, utfør `rollback`,
+        eller slett applikasjonen.
 
-          Kan også være nyttig å:
-          - Les app logs (kubectl logs appname).
-          - Les Application events (kubectl describe deployment appname)
+        Kan også være nyttig å:
+        - Les app logs (kubectl logs appname).
+        - Les Application events (kubectl describe deployment appname)
 
-          Om du ønsker å motta disse meldingene i en annen kanal,
-          kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
-          https://github.com/navikt/teams.
-          Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
-          namespace, i alfabetisk rekkefølge.
-        description: |
-          Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}",
-          og derfor nedskallert applikasjonen ettersom den har vært feilende i minst
-          "\{{ $labels.resource_age }}".
-        documentation: https://github.com/nais/babylon/README.md
-        severity: warning
+        Om du ønsker å motta disse meldingene i en annen kanal,
+        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
+        https://github.com/navikt/teams.
+        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
+        namespace, i alfabetisk rekkefølge.
+      description: |
+        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}",
+        og derfor nedskallert applikasjonen ettersom den har vært feilende i minst
+        "\{{ $labels.resource_age }}".
+      documentation: https://github.com/nais/babylon/README.md
+      severity: warning
 ---
 apiVersion: nais.io/v1
 kind: Alert
