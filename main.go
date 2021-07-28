@@ -32,7 +32,7 @@ func main() {
 	}
 
 	m := metrics.Init()
-	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollbacks)
+	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollback)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme.Scheme,
