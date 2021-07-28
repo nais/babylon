@@ -115,4 +115,4 @@ jobs:
           CLUSTER: ${{ matrix.cluster }}
           RESOURCE: .nais/nais.yaml,alerts/rollbackAlert.yaml
           VARS: .nais/${{ matrix.cluster }}.yaml
-          VAR: image=${{ env.docker_image }}
+          VAR: image=${{ env.docker_image }},cluster=${{ matrix.cluster }}

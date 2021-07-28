@@ -37,6 +37,8 @@ spec:
               value: "true"
             - name: ALLOWED_NAMESPACES
               value: "default,babylon-test"
+            - name: CLUSTER
+              value: "minikube"
           image: babylon
           ports:
             - containerPort: 8080

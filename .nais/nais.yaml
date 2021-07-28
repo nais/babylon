@@ -36,6 +36,8 @@ spec:
     - name: LINKERD_DISABLED
       value: "{{linkerd_disabled}}"
     {{/if}}
+    - name: CLUSTER
+      value: "{{cluster}}"
   replicas:
     min: 1
     max: 1
