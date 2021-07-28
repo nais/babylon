@@ -103,13 +103,13 @@ func gardener(ctx context.Context, s *service.Service) {
 
 					continue
 				case time.Since(lastNotified) < s.Config.GraceDuration(deploy):
-					log.Debugf(
+					log.Infof(
 						"not yet ready to prune deployment %s, too early since last notification: %s",
 						deploy.Name, lastNotified.String())
 
 					continue
 				case time.Since(lastNotified) < s.Config.NotificationTimeout:
-					log.Debugf("Team already notified at %s, skipping deploy %s", lastNotified.String(), deploy.Name)
+					log.Infof("Team already notified at %s, skipping deploy %s", lastNotified.String(), deploy.Name)
 
 					continue
 				}

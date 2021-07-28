@@ -60,7 +60,7 @@ DEPLOYMENTS:
 
 			continue
 		}
-		log.Debugf("Checking deployment: %s", deployment.Name)
+		log.Tracef("Checking deployment: %s", deployment.Name)
 
 		for j := range rs.Items {
 			if allPodsFailingInReplicaSet(ctx, &rs.Items[j], s) || checkFailingInitContainers(ctx, s, &rs.Items[j]) {
@@ -78,7 +78,7 @@ func createContainerConfigError(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil {
-			log.Debugf("Waiting: %+v", waiting)
+			log.Debugf("Waiting (CreateContainerConfigError): %+v", waiting)
 		}
 		if waiting != nil && waiting.Reason == CreateContainerConfigError {
 			return true
@@ -92,7 +92,7 @@ func containerImageCheckFail(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil {
-			log.Debugf("Waiting: %+v", waiting)
+			log.Debugf("Waiting (ContainerImageCheckFail): %+v", waiting)
 		}
 		if waiting != nil && (waiting.Reason == ImagePullBackOff || waiting.Reason == ErrImagePull) {
 			return true
@@ -106,7 +106,7 @@ func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerS
 	for _, container := range containers {
 		waiting := container.State.Waiting
 		if waiting != nil {
-			log.Debugf("Waiting: %+v", waiting)
+			log.Debugf("Waiting (ContainerCrashLoopBackOff): %+v", waiting)
 		}
 
 		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > config.RestartThreshold {
@@ -120,18 +120,18 @@ func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerS
 func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
 	switch {
 	case pod.Status.Phase == v1.PodRunning:
-		log.Debugf("Pod: %s running", pod.Name)
+		log.Tracef("Pod: %s running", pod.Name)
 		if containerCrashLoopBackOff(config, pod.Status.ContainerStatuses) {
 			return true, CrashLoopBackOff
 		}
 
 		return false, ""
 	case pod.Status.Phase == v1.PodSucceeded:
-		log.Debugf("Pod: %s succeeded", pod.Name)
+		log.Tracef("Pod: %s succeeded", pod.Name)
 
 		return false, ""
 	case pod.Status.Phase == v1.PodPending:
-		log.Debugf("Pod: %s pending", pod.Name)
+		log.Tracef("Pod: %s pending", pod.Name)
 		if containerImageCheckFail(pod.Status.ContainerStatuses) {
 			return true, ImagePullBackOff
 		}
@@ -141,11 +141,11 @@ func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
 
 		return false, ""
 	case pod.Status.Phase == v1.PodFailed:
-		log.Debugf("Pod: %s failed", pod.Name)
+		log.Tracef("Pod: %s failed", pod.Name)
 
 		return false, "" // should be true?
 	case pod.Status.Phase == v1.PodUnknown:
-		log.Debugf("Pod: %s unknown", pod.Name)
+		log.Tracef("Pod: %s unknown", pod.Name)
 
 		return false, ""
 	default:
@@ -161,7 +161,7 @@ func checkFailingInitContainers(ctx context.Context, s *service.Service, rs *app
 
 	for i := range pods.Items {
 		if IsInitContainerFailed(s.Config, pods.Items[i].Status.InitContainerStatuses) {
-			log.Debugf("Init container failing for rs %s", rs.Name)
+			log.Infof("Init container failing for rs %s", rs.Name)
 
 			return true
 		}
@@ -231,6 +231,7 @@ func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *ap
 	if err != nil {
 		return fmt.Errorf("failed to apply patch: %w", err)
 	}
+	log.Infof("Downscaled deployment %s", deployment.Name)
 
 	return nil
 }
@@ -274,8 +275,7 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 			return
 		}
 
-		s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed,
-			s.SlackChannel(ctx, deployment.Namespace), candidate)
+		s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace), candidate)
 	}
 }
 
@@ -318,6 +318,7 @@ func FlagFailingDeployment(ctx context.Context, s *service.Service, deployment *
 		return fmt.Errorf("%w", err)
 	}
 
+	log.Infof("Marking deployment %s as failing", deployment.Name)
 	s.Metrics.IncTeamNotification(deployment, s.SlackChannel(ctx, deployment.Namespace), s.Config.GraceCutoff(deployment))
 
 	return nil

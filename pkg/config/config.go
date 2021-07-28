@@ -174,9 +174,12 @@ func (c *Config) IsNamespaceAllowed(namespace string) bool {
 			continue
 		}
 		if strings.Contains(namespace, c.AllowedNamespaces[i]) || strings.Contains(c.AllowedNamespaces[i], namespace) {
+			log.Tracef("namespace %s allowed", namespace)
+
 			return true
 		}
 	}
+	log.Tracef("namespace %s not allowed", namespace)
 
 	return false
 }

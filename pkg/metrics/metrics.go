@@ -62,6 +62,8 @@ func (m *Metrics) IncDeploymentRollbacks(
 
 		return
 	}
+	log.Debugf("Team %s notified about rollback", team)
+
 	metric.Inc()
 }
 
@@ -83,6 +85,8 @@ func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
 
 		return
 	}
+	log.Debugf("Team %s notified about rollback", team)
+
 	metric.Inc()
 }
 
@@ -99,5 +103,7 @@ func (m *Metrics) IncTeamNotification(deployment *appsv1.Deployment, channel str
 
 		return
 	}
+	log.Debugf("Team %s notified about failing deployment", team)
+
 	metric.Inc()
 }
