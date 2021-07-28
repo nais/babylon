@@ -78,7 +78,7 @@ func createContainerConfigError(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil {
-			log.Debugf("Waiting (CreateContainerConfigError): %+v", waiting)
+			log.Tracef("Waiting (CreateContainerConfigError): %+v", waiting)
 		}
 		if waiting != nil && waiting.Reason == CreateContainerConfigError {
 			return true
@@ -92,7 +92,7 @@ func containerImageCheckFail(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil {
-			log.Debugf("Waiting (ContainerImageCheckFail): %+v", waiting)
+			log.Tracef("Waiting (ContainerImageCheckFail): %+v", waiting)
 		}
 		if waiting != nil && (waiting.Reason == ImagePullBackOff || waiting.Reason == ErrImagePull) {
 			return true
@@ -106,7 +106,7 @@ func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerS
 	for _, container := range containers {
 		waiting := container.State.Waiting
 		if waiting != nil {
-			log.Debugf("Waiting (ContainerCrashLoopBackOff): %+v", waiting)
+			log.Tracef("Waiting (ContainerCrashLoopBackOff): %+v", waiting)
 		}
 
 		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > config.RestartThreshold {
@@ -212,16 +212,19 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 
 		return false
 	}
+
 	failedPods := 0
+	var reasons []string
 	for i := range pods.Items {
 		if fail, reason := ShouldPodBeDeleted(s.Config, &pods.Items[i]); fail {
 			failedPods++
+			reasons = append(reasons, reason)
 			s.Metrics.IncRuleActivations(rs, reason)
 		}
 	}
 
 	if failedPods > 0 {
-		log.Debugf("%d/%d failing pods in replicaset %s", failedPods, len(pods.Items), rs.Name)
+		log.Debugf("%d/%d failing pods in replicaset %s due to %v", failedPods, len(pods.Items), rs.Name, reasons)
 	}
 
 	return failedPods == len(pods.Items)
