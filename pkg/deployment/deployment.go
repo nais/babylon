@@ -219,7 +219,10 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 			s.Metrics.IncRuleActivations(rs, reason)
 		}
 	}
-	log.Debugf("%d/%d failing pods in replicaset %s", failedPods, len(pods.Items), rs.Name)
+
+	if failedPods > 0 {
+		log.Debugf("%d/%d failing pods in replicaset %s", failedPods, len(pods.Items), rs.Name)
+	}
 
 	return failedPods == len(pods.Items)
 }
