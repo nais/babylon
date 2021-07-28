@@ -14,29 +14,57 @@ import (
 const Unknown = "unknown"
 
 type Metrics struct {
-	DeploymentRollbacks *prometheus.CounterVec
+	DeploymentRollback  *prometheus.CounterVec
+	DeploymentDownscale *prometheus.CounterVec
 	RuleActivations     *prometheus.CounterVec
 	TeamNotifications   *prometheus.CounterVec
 }
 
 func Init() Metrics {
 	return Metrics{
-		DeploymentRollbacks: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "babylon_deployment_rollbacks_total",
+		DeploymentRollback: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "babylon_deployment_rollback_total",
 			Help: "Deployments rolled back",
 		}, []string{
 			"cluster", "deployment", "affected_team", "dryrun",
 			"slack_channel", "previousDockerHash", "currentDockerHash",
 		}),
+		DeploymentDownscale: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "babylon_deployment_downscale_total",
+			Help: "Deployments downscaled",
+		}, []string{"cluster", "deployment", "affected_team", "dryrun", "slack_channel", "resource_age"}),
 		RuleActivations: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_rule_activations_total",
 			Help: "Rules triggered",
 		}, []string{"cluster", "deployment", "affected_team", "reason"}),
 		TeamNotifications: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_team_notifications_total",
-			Help: "Notifiactions sent to team regarding failing deployments",
+			Help: "Notifications sent to team regarding failing deployments",
 		}, []string{"cluster", "deployment", "affected_team", "slack_channel", "grace_cutoff"}),
 	}
+}
+
+func (m *Metrics) IncDownscaledDeployments(
+	deployment *appsv1.Deployment,
+	armed bool,
+	channel string,
+	resourceAge string) {
+	team, ok := deployment.Labels["team"]
+	if !ok {
+		team = Unknown
+	}
+
+	cluster := config.GetEnv("CLUSTER", "unknown")
+	metric, err := m.DeploymentDownscale.GetMetricWithLabelValues(
+		cluster, deployment.Name, team, strconv.FormatBool(!armed), channel, resourceAge)
+	if err != nil {
+		log.Errorf("Metric failed: %+v", err)
+
+		return
+	}
+	log.Debugf("Team %s notified about downscaling", team)
+
+	metric.Inc()
 }
 
 func (m *Metrics) IncDeploymentRollbacks(
@@ -60,7 +88,7 @@ func (m *Metrics) IncDeploymentRollbacks(
 	}
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
-	metric, err := m.DeploymentRollbacks.GetMetricWithLabelValues(
+	metric, err := m.DeploymentRollback.GetMetricWithLabelValues(
 		cluster, deployment.Name, team, strconv.FormatBool(!armed), channel, previousDockerHash, currentDockerHash)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
@@ -91,7 +119,7 @@ func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
 
 		return
 	}
-	log.Debugf("Team %s notified about rollback", team)
+	log.Debugf("RuleActivationsMetric incremented by team: %s", team)
 
 	metric.Inc()
 }

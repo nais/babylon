@@ -238,6 +238,8 @@ func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *ap
 		return fmt.Errorf("failed to apply patch: %w", err)
 	}
 	log.Infof("Downscaled deployment %s", deployment.Name)
+	s.Metrics.IncDownscaledDeployments(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace),
+		s.Config.ResourceAge.String())
 
 	return nil
 }
