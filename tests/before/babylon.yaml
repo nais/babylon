@@ -20,7 +20,7 @@ spec:
       labels:
         app: babylon-test
     spec:
-      serviceAccountName: babylon-service-account
+      serviceAccountName: babylon-test-service-account
       containers:
         - name: babylon-test
           imagePullPolicy: Never
@@ -52,13 +52,13 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: babylon-service-account
+  name: babylon-test-service-account
   namespace: babylon-test
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: babylon-cluster-role
+  name: babylon-test-cluster-role
 rules:
   - apiGroups:
       - ""
@@ -77,13 +77,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: babylon-cluster-role-binding
+  name: babylon-test-cluster-role-binding
   namespace: babylon-test
 subjects:
   - kind: ServiceAccount
-    name: babylon-service-account
+    name: babylon-test-service-account
     namespace: babylon-test
 roleRef:
   kind: ClusterRole
-  name: babylon-cluster-role
+  name: babylon-test-cluster-role
   apiGroup: rbac.authorization.k8s.io
