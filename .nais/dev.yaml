@@ -1,5 +1,5 @@
 ingresses:
-  - "https://babylon.intern.nav.no"
+  - "https://babylon.dev.intern.nav.no"
 
 log_level: "debug"
 port: "8080"
@@ -11,3 +11,4 @@ notification_timeout: "5m"
 linkerd_disabled: "true"
 use_allowed_namespaces: "true"
 allowed_namespaces: ""
+unleash_url: "https://unleash.nais.io/api/"

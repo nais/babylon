@@ -102,9 +102,6 @@ jobs:
           - dev-gcp
           - dev-fss
           - dev-sbs
-          - prod-gcp
-          - prod-fss
-          - prod-sbs
 
     steps:
       - uses: actions/checkout@v2
@@ -114,5 +111,31 @@ jobs:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: ${{ matrix.cluster }}
           RESOURCE: .nais/nais.yaml,alerts/rollbackAlert.yaml
-          VARS: .nais/${{ matrix.cluster }}.yaml
+          VARS: .nais/dev.yaml,.nais/${{ matrix.cluster }}.yaml
+          VAR: image=${{ env.docker_image }}
+
+  deployToProd:
+    name: Deploy to prod
+    needs:
+      - docker
+      - integrationTest
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+
+    strategy:
+      matrix:
+        cluster:
+          - prod-gcp
+          - prod-fss
+          - prod-sbs
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Deploy to PROD
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: ${{ matrix.cluster }}
+          RESOURCE: .nais/nais.yaml,alerts/rollbackAlert.yaml
+          VARS: .nais/prod.yaml,.nais/${{ matrix.cluster }}.yaml
           VAR: image=${{ env.docker_image }}
