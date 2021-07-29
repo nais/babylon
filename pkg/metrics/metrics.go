@@ -26,21 +26,21 @@ func Init() Metrics {
 			Name: "babylon_deployment_rollback_total",
 			Help: "Deployments rolled back",
 		}, []string{
-			"cluster", "deployment", "affected_team", "dryrun",
+			"cluster", "deployment", "namespace", "affected_team", "dryrun",
 			"slack_channel", "previousDockerHash", "currentDockerHash",
 		}),
 		DeploymentDownscale: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_deployment_downscale_total",
 			Help: "Deployments downscaled",
-		}, []string{"cluster", "deployment", "affected_team", "dryrun", "slack_channel", "resource_age"}),
+		}, []string{"cluster", "deployment", "namespace", "affected_team", "dryrun", "slack_channel", "resource_age"}),
 		RuleActivations: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_rule_activations_total",
 			Help: "Rules triggered",
-		}, []string{"cluster", "deployment", "affected_team", "reason"}),
+		}, []string{"cluster", "deployment", "namespace", "affected_team", "reason"}),
 		TeamNotifications: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_team_notifications_total",
 			Help: "Notifications sent to team regarding failing deployments",
-		}, []string{"cluster", "deployment", "affected_team", "slack_channel", "grace_cutoff"}),
+		}, []string{"cluster", "deployment", "namespace", "affected_team", "slack_channel", "grace_cutoff"}),
 	}
 }
 
@@ -56,7 +56,7 @@ func (m *Metrics) IncDownscaledDeployments(
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
 	metric, err := m.DeploymentDownscale.GetMetricWithLabelValues(
-		cluster, deployment.Name, team, strconv.FormatBool(!armed), channel, resourceAge)
+		cluster, deployment.Namespace, deployment.Name, team, strconv.FormatBool(!armed), channel, resourceAge)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
@@ -89,7 +89,8 @@ func (m *Metrics) IncDeploymentRollbacks(
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
 	metric, err := m.DeploymentRollback.GetMetricWithLabelValues(
-		cluster, deployment.Name, team, strconv.FormatBool(!armed), channel, previousDockerHash, currentDockerHash)
+		cluster, deployment.Namespace, deployment.Name, team, strconv.FormatBool(!armed),
+		channel, previousDockerHash, currentDockerHash)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
@@ -113,7 +114,7 @@ func (m *Metrics) IncRuleActivations(rs *appsv1.ReplicaSet, reason string) {
 	}
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
-	metric, err := m.RuleActivations.GetMetricWithLabelValues(cluster, deployment, team, reason)
+	metric, err := m.RuleActivations.GetMetricWithLabelValues(cluster, rs.Namespace, deployment, team, reason)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
@@ -133,7 +134,7 @@ func (m *Metrics) IncTeamNotification(deployment *appsv1.Deployment, channel str
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
 	metric, err := m.TeamNotifications.GetMetricWithLabelValues(
-		cluster, deployment.Name, team, channel, graceCutoff.Format("2006-01-02 15:04:05 -0700 MST"))
+		cluster, deployment.Namespace, deployment.Name, team, channel, graceCutoff.Format("2006-01-02 15:04:05 -0700 MST"))
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
