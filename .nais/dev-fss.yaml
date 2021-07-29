@@ -1,5 +1,5 @@
 ingresses:
-  - "https://babylon.dev.intern.nav.no"
+  - "https://babylon-fss.dev.intern.nav.no"
 
 log_level: "debug"
 port: "8080"
