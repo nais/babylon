@@ -41,6 +41,13 @@ type Config struct {
 	AllowedNamespaces    []string
 	GracePeriod          time.Duration
 	ActiveTimeIntervals  map[string][]timeinterval.TimeInterval
+	InfluxdbServiceURI   SecretServiceURI
+}
+
+type SecretServiceURI string
+
+func (ssu SecretServiceURI) String() string {
+	return "[REDACTED]" // TODO: Make more sophisticated(sensor credentials)
 }
 
 func DefaultConfig() Config {
@@ -88,6 +95,9 @@ func ParseConfig() Config {
 
 	namespacesFromEnv := GetEnv("ALLOWED_NAMESPACES", "")
 	cfg.AllowedNamespaces = strings.Split(namespacesFromEnv, ",")
+
+	influxdbServiceURI := GetEnv("AIVEN_INFLUXDB_SERVICE_URI", "")
+	cfg.InfluxdbServiceURI = SecretServiceURI(influxdbServiceURI)
 
 	duration, err := time.ParseDuration(tickRate)
 	if err == nil {
