@@ -58,13 +58,13 @@ func (m *Metrics) IncDownscaledDeployments(
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
 	metric, err := m.DeploymentDownscale.GetMetricWithLabelValues(
-		cluster, deployment.Namespace, deployment.Name, team, strconv.FormatBool(!armed), channel, resourceAge)
+		cluster, deployment.Name, deployment.Namespace, team, strconv.FormatBool(!armed), channel, resourceAge)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
 		return
 	}
-	log.Debugf("Team %s notified about downscaling", team)
+	log.Debugf("Team %s notified in %s about downscaling", team, channel)
 
 	metric.Inc()
 }
@@ -91,7 +91,7 @@ func (m *Metrics) IncDeploymentRollbacks(
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
 	metric, err := m.DeploymentRollback.GetMetricWithLabelValues(
-		cluster, deployment.Namespace, deployment.Name, team, strconv.FormatBool(!armed),
+		cluster, deployment.Name, deployment.Namespace, team, strconv.FormatBool(!armed),
 		channel, previousDockerHash, currentDockerHash)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
@@ -119,7 +119,7 @@ func (m *Metrics) IncRuleActivations(
 	}
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
-	metric, err := m.RuleActivations.GetMetricWithLabelValues(cluster, rs.Namespace, deployment, team, reason)
+	metric, err := m.RuleActivations.GetMetricWithLabelValues(cluster, deployment, rs.Namespace, team, reason)
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
@@ -150,7 +150,7 @@ func (m *Metrics) IncTeamNotification(deployment *appsv1.Deployment, channel str
 
 	cluster := config.GetEnv("CLUSTER", "unknown")
 	metric, err := m.TeamNotifications.GetMetricWithLabelValues(
-		cluster, deployment.Namespace, deployment.Name, team, channel, graceCutoff.Format("2006-01-02 15:04:05 -0700 MST"))
+		cluster, deployment.Name, deployment.Namespace, team, channel, graceCutoff.Format("2006-01-02 15:04:05 -0700 MST"))
 	if err != nil {
 		log.Errorf("Metric failed: %+v", err)
 
