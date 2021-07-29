@@ -34,3 +34,6 @@ test: ## Run tests.
 	$(MAKE) docker-build-fast
 	go test ./...
 	kubectl kuttl test --timeout=60 --start-kind=false
+
+uml: # generate uml diagram
+	plantuml -tsvg docs/*.puml
