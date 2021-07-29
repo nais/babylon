@@ -12,6 +12,7 @@ import (
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/metrics"
 	"github.com/nais/babylon/pkg/service"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -35,8 +36,11 @@ func main() {
 	m := metrics.Init()
 	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollback)
 
+	sch := scheme.Scheme
+	sch.AddKnownTypes(nais_io_v1.GroupVersion, &nais_io_v1.AlertList{})
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme.Scheme,
+		Scheme:                 sch,
 		MetricsBindAddress:     fmt.Sprintf(":%d", port),
 		HealthProbeBindAddress: fmt.Sprintf(":%d", port+1),
 	})
