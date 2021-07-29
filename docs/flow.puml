@@ -1,10 +1,10 @@
 @startuml babylon-flow 
 actor developer as developer
-participant k8s as "Kubernetes Cluster\in(e.g. dev-gcp)"
+participant k8s as "Kubernetes Cluster\n(e.g. dev-gcp)"
 participant babylon as "Babylon"
 participant alertmanager as "Slack"
-==Primary loop==
-developer -> k8s: deploy application 
+
+developer -> k8s: deploy application
 loop Repeats every X (default: 60s)
 babylon -> k8s: GET "Deployments"
 return Deployments
