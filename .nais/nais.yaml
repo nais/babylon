@@ -68,7 +68,7 @@ spec:
           - key: "working-hours.yaml"
             path: "./working-hours.yaml"
   envFrom:
-    - secret: "aiven-influxdb-creds-dev"
+    - secret: "aiven-influxdb-service-uri"
 ---
 apiVersion: v1
 kind: ConfigMap
