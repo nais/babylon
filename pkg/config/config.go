@@ -88,7 +88,7 @@ func ParseConfig() Config {
 	// Timeout between notifying teams
 	notificationTimeout := GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
 
-	graceperiod := GetEnv("GRACE_PERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
+	gracePeriod := GetEnv("GRACE_PERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
 
 	cfg.UseAllowedNamespaces = GetEnv("USE_ALLOWED_NAMESPACES",
 		fmt.Sprintf("%t", cfg.UseAllowedNamespaces)) == StringTrue
@@ -111,7 +111,7 @@ func ParseConfig() Config {
 	if err == nil {
 		cfg.NotificationTimeout = nt
 	}
-	gp, err := time.ParseDuration(graceperiod)
+	gp, err := time.ParseDuration(gracePeriod)
 	if err == nil {
 		cfg.GracePeriod = gp
 	}
