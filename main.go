@@ -20,8 +20,8 @@ import (
 )
 
 func main() {
+	logger.Setup(config.GetEnv("LOG_LEVEL", "debug"))
 	cfg := config.ParseConfig()
-	logger.Setup(cfg.LogLevel)
 
 	// TODO: perhaps timeout between each tick?
 	ctx := context.Background()
