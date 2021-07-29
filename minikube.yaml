@@ -60,10 +60,10 @@ data:
   "working-hours.yaml": |
     - name: working-hours
       time_intervals:
-        - times:
+        - weekdays: ["monday:friday"]
+          times:
           - start_time: 10:00
             end_time: 17:00
-        - weekdays: ["monday:friday"]
 metadata:
   name: babylon-working-hours
 ---

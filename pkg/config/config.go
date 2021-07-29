@@ -126,6 +126,7 @@ func ParseConfig() Config {
 		return cfg
 	}
 
+	cfg.ActiveTimeIntervals = map[string][]timeinterval.TimeInterval{}
 	for _, mti := range intervals {
 		cfg.ActiveTimeIntervals[mti.Name] = mti.TimeIntervals
 	}
