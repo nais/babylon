@@ -34,7 +34,7 @@ func main() {
 	}
 
 	m := metrics.Init()
-	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollback)
+	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollback, m.DeploymentDownscale, m.TeamNotifications)
 
 	sch := scheme.Scheme
 	sch.AddKnownTypes(nais_io_v1.GroupVersion, &nais_io_v1.AlertList{})
