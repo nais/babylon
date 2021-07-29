@@ -1,6 +1,6 @@
 @startuml babylon-flow 
 actor developer as developer
-participant k8s as "Kubernetes Cluster (e.g. dev-gcp)"
+participant k8s as "Kubernetes Cluster\n(e.g. dev-gcp)"
 participant babylon as "Babylon"
 participant alertmanager as "Slack"
 ==Primary loop==

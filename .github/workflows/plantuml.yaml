@@ -44,5 +44,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4.1.2
         with:
           commit_message: "Generate SVG and PNG images for PlantUML diagrams"
-          file_pattern: "*.svg *.png"
+          file_pattern: "docs/*.[sp][vn]g"
           branch: ${{ github.head_ref }}
