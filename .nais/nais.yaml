@@ -75,8 +75,8 @@ data:
     - name: working-hours
       time_intervals:
         - times:
-          - start_time: 08:00
-            end_time: 15:00
+          - start_time: 10:00
+            end_time: 17:00
         - weekdays: ["monday:friday"]
 metadata:
   namespace: babylon
