@@ -5,10 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/nais/babylon/pkg/config"
-
-	"github.com/nais/babylon/pkg/config"
-
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
