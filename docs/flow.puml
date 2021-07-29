@@ -1,0 +1,37 @@
+@startuml babylon-flow 
+actor developer as developer
+participant k8s as "Kubernetes Cluster (e.g. dev-gcp)"
+participant babylon as "Babylon"
+participant alertmanager as "Slack"
+==Primary loop==
+developer -> k8s: deploy application 
+loop Repeats every X (default: 60s)
+babylon -> k8s: GET "Deployments"
+return Deployments
+babylon -> babylon: filter(deployment.namespace in allowed_namespaces)
+
+alt deployment.annotations.Notification.age > Y (default: 24h) \n and deployment.annotations.LastChangeCause != Rolled back by Babylon
+
+    alt exists running replicaset from previous revision
+        
+        babylon -> k8s: rollback to working revision
+        babylon -> alertmanager: rolled back deployment
+
+    else no rollback candidate
+
+        babylon -> k8s: downscale deployment to 0 replicas
+        babylon -> alertmanager: downscaled deployment
+
+    end
+
+else deployment.age < Z (default: 24h)
+    
+    babylon -> babylon: skip
+
+else deployment.age > Z
+
+    babylon -> alertmanager: alert team of failing deployment
+end
+
+end
+@enduml

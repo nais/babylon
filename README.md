@@ -4,6 +4,10 @@
 
 By default, the application will not perform destructive actions. To arm it set the `ARMED` 💥 environment variable to true. 
 
+## Primary workflow
+
+![UML-sequence diagram of primary loop](docs/babylon-flow.svg)
+
 ## Configure `ALLOWED_NAMESPACES` 
 
 By default, babylon looks for broken deploys in all namespaces, but this can be configured. If want to enable the allowlist, set the environment variable `USE_ALLOWED_NAMESPACES`
