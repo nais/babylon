@@ -16,7 +16,7 @@ spec:
       username: Babylon - Testing
   alerts:
     - alert: Feilende applikasjon rullet tilbake
-      expr: 'increase(babylon_deployment_rollback_total[5m]) > 1'
+      expr: 'babylon_deployment_rollback_total'
       for: 0s
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,
@@ -37,7 +37,7 @@ spec:
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon detektert
-      expr: 'increase(babylon_team_notifications_total[5m]) > 1'
+      expr: 'babylon_team_notifications_total'
       for: 0s
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,
@@ -59,7 +59,7 @@ spec:
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon nedskalert
-      expr: 'increase(babylon_deployment_downscale_total[5m]) > 1'
+      expr: 'babylon_deployment_downscale_total'
       for: 0s
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,

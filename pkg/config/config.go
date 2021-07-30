@@ -205,7 +205,7 @@ func (c *Config) GraceDuration(deployment *appsv1.Deployment) time.Duration {
 }
 
 func (c *Config) GraceCutoff(deployment *appsv1.Deployment) time.Time {
-	return time.Now().Add(-c.GraceDuration(deployment))
+	return time.Now().Add(c.GraceDuration(deployment))
 }
 
 func (c *Config) InActivePeriod(time time.Time) bool {
