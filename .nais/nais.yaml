@@ -56,17 +56,9 @@ spec:
     {{#each ingresses as |url|}}
        - {{url}}
       {{/each}}
-  volumeMounts:
-    - name: config
-      mountPath: /etc/config
-      readOnly: true
-  volumes:
-    - name: config
-      configMap:
-        name: babylon-working-hours
-        items:
-          - key: "working-hours.yaml"
-            path: "./working-hours.yaml"
+  filesFrom:
+    - configmap: babylon-working-hours
+      mountPath: "/etc/config"
   {{#if in_gcp_cluster}}
   envFrom:
     - secret: "aiven-influxdb-service-uri"
