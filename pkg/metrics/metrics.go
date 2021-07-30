@@ -20,9 +20,10 @@ type Metrics struct {
 	DeploymentDownscale *prometheus.CounterVec
 	RuleActivations     *prometheus.CounterVec
 	TeamNotifications   *prometheus.CounterVec
+	InfluxdbDatabase    string
 }
 
-func Init() Metrics {
+func Init(database string) Metrics {
 	return Metrics{
 		DeploymentRollback: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_deployment_rollback_total",
@@ -43,6 +44,7 @@ func Init() Metrics {
 			Name: "babylon_team_notifications_total",
 			Help: "Notifications sent to team regarding failing deployments",
 		}, []string{"cluster", "deployment", "namespace", "affected_team", "slack_channel", "grace_cutoff"}),
+		InfluxdbDatabase: database,
 	}
 }
 
@@ -135,10 +137,10 @@ func (m *Metrics) IncRuleActivations(
 
 	metric.Inc()
 
-	writeAPI := influxC.WriteAPIBlocking("", "default")
+	writeAPI := influxC.WriteAPIBlocking("", m.InfluxdbDatabase)
 	p := influxdb2.NewPoint("rule-activation",
-		map[string]string{"deployment": deployment, "team": team, "reason": reason},
-		map[string]interface{}{},
+		map[string]string{},
+		map[string]interface{}{"deployment": deployment, "team": team, "reason": reason},
 		time.Now())
 
 	err = writeAPI.WritePoint(context.Background(), p)

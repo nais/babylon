@@ -34,7 +34,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	m := metrics.Init()
+	m := metrics.Init(cfg.InfluxdbDatabase)
 	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollback, m.DeploymentDownscale, m.TeamNotifications)
 
 	scheme := runtime.NewScheme()
@@ -68,9 +68,11 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	userName := "my-user"
-	password := "my-password"
-	influxC := influxdb2.NewClient("http://localhost:8086", fmt.Sprintf("%s:%s", userName, password))
+	influxC := influxdb2.NewClient(
+		cfg.InfluxdbURI,
+		fmt.Sprintf("%s:%s",
+			cfg.InfluxdbUsername.SecretString(),
+			cfg.InfluxdbPassword.SecretString()))
 
 	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC}
 
