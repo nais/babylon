@@ -89,3 +89,17 @@ $ sudo killall -HUP mDNSResponder
 ### Developer setup
 
 You must have pre-commit installed, then run `make hooks` to install git hooks. 
+
+### Local InfluxDB testing
+
+`minikube.yaml` contains setup for InfluxDB instance. 
+
+
+**Prerequisites**
+- Setup `influxdb.local` in etc/hosts. See "Access running application" section.
+
+Test query to query the data from the InfluxDB instance:
+
+```bash
+curl -G 'http://influxdb.local/query?pretty=true' --data-urlencode "db=testdb" --data-urlencode "q=SHOW SERIES"
+```
