@@ -92,7 +92,8 @@ spec:
   receivers:
     slack:
       channel: 'babylon-existential-alerts'
-  alerts:
+      icon_emoji: ':heart:'
+    alerts:
     - alert: applikasjon nede
       expr: kube_deployment_status_replicas_available{deployment="babylon"} == 0
       for: 2m
