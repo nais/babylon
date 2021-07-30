@@ -29,6 +29,7 @@ const (
 	CrashLoopBackOff           = "CrashLoopBackOff"
 	CreateContainerConfigError = "CreateContainerConfigError"
 	RollbackCauseAnnotation    = "rolled back by babylon"
+	DownscaleCauseAnnotation   = "scaled down by babylon"
 	ChangeCauseAnnotationKey   = "kubernetes.io/change-cause"
 )
 
@@ -233,6 +234,7 @@ func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *s
 func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
 	patch := client.MergeFrom(deployment.DeepCopy())
 	deployment.Spec.Replicas = utils.Int32ptr(0)
+	deployment.Annotations[ChangeCauseAnnotationKey] = DownscaleCauseAnnotation
 	err := s.Client.Patch(ctx, deployment, patch)
 	if err != nil {
 		return fmt.Errorf("failed to apply patch: %w", err)
