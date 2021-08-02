@@ -46,7 +46,6 @@ jobs:
   integrationTest:
     name: Integration Test
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip integration]')"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
