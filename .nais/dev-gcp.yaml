@@ -3,7 +3,7 @@ ingresses:
 
 log_level: "debug"
 port: "8080"
-armed: "true"
+armed: "false"
 restart_threshold: "5"
 resource_age: "1m"
 tickrate: "1m"

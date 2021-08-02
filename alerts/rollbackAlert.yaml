@@ -1,86 +1,86 @@
-apiVersion: "nais.io/v1"
-kind: "Alert"
-metadata:
-  name: babylon-alerter
-  namespace: babylon
-  labels:
-    team: babylon
-spec:
-  route:
-    group_by: [slack_channel]
-  receivers: # receivers for all alerts below
-    slack:
-      channel: '\{{ index ((index .Alerts 0).Labels) "slack_channel" }}'
-      icon_emoji: ':farmer:'
-      send_resolved: false
-      username: Babylon - Testing
-  alerts:
-    - alert: Feilende applikasjon rullet tilbake
-      expr: 'babylon_deployment_rollback_total'
-      for: 0s
-      action: |
-        Slå applikasjonen av og på igjen, utfør `rollback`,
-        eller slett applikasjonen.
-
-        Kan også være nyttig å:
-        - Les app logs (kubectl logs appname).
-        - Les Application events (kubectl describe deployment appname)
-
-        Om du ønsker å motta disse meldingene i en annen kanal,
-        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
-        https://github.com/navikt/teams.
-        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
-        namespace, i alfabetisk rekkefølge.
-      description: |
-        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
-        Utfører `rollback` fra \{{ $labels.previousDockerHash }} til \{{ $labels.currentDockerHash }}.
-      documentation: https://github.com/nais/babylon/README.md
-      severity: warning
-    - alert: Feilende applikasjon detektert
-      expr: 'babylon_team_notifications_total'
-      for: 0s
-      action: |
-        Slå applikasjonen av og på igjen, utfør `rollback`,
-        eller slett applikasjonen.
-
-        Kan også være nyttig å:
-        - Les app logs (kubectl logs appname).
-        - Les Application events (kubectl describe deployment appname)
-
-        Om du ønsker å motta disse meldingene i en annen kanal,
-        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
-        https://github.com/navikt/teams.
-        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
-        namespace, i alfabetisk rekkefølge.
-      description: |
-        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
-        Dersom dere ikke utfører endringer, så vil Babylon nedskalere eller rulle tilbake
-        applikasjonen tidligst "\{{ $labels.grace_cutoff }}".
-      documentation: https://github.com/nais/babylon/README.md
-      severity: warning
-    - alert: Feilende applikasjon nedskalert
-      expr: 'babylon_deployment_downscale_total'
-      for: 0s
-      action: |
-        Slå applikasjonen av og på igjen, utfør `rollback`,
-        eller slett applikasjonen.
-
-        Kan også være nyttig å:
-        - Les app logs (kubectl logs appname).
-        - Les Application events (kubectl describe deployment appname)
-
-        Om du ønsker å motta disse meldingene i en annen kanal,
-        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
-        https://github.com/navikt/teams.
-        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
-        namespace, i alfabetisk rekkefølge.
-      description: |
-        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}",
-        og derfor nedskallert applikasjonen ettersom den har vært feilende i minst
-        "\{{ $labels.resource_age }}".
-      documentation: https://github.com/nais/babylon/README.md
-      severity: warning
----
+#apiVersion: "nais.io/v1"
+#kind: "Alert"
+#metadata:
+#  name: babylon-alerter
+#  namespace: babylon
+#  labels:
+#    team: babylon
+#spec:
+#  route:
+#    group_by: [slack_channel]
+#  receivers: # receivers for all alerts below
+#    slack:
+#      channel: '\{{ index ((index .Alerts 0).Labels) "slack_channel" }}'
+#      icon_emoji: ':farmer:'
+#      send_resolved: false
+#      username: Babylon - Testing
+#  alerts:
+#    - alert: Feilende applikasjon rullet tilbake
+#      expr: 'babylon_deployment_rollback_total'
+#      for: 0s
+#      action: |
+#        Slå applikasjonen av og på igjen, utfør `rollback`,
+#        eller slett applikasjonen.
+#
+#        Kan også være nyttig å:
+#        - Les app logs (kubectl logs appname).
+#        - Les Application events (kubectl describe deployment appname)
+#
+#        Om du ønsker å motta disse meldingene i en annen kanal,
+#        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
+#        https://github.com/navikt/teams.
+#        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
+#        namespace, i alfabetisk rekkefølge.
+#      description: |
+#        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
+#        Utfører `rollback` fra \{{ $labels.previousDockerHash }} til \{{ $labels.currentDockerHash }}.
+#      documentation: https://github.com/nais/babylon/README.md
+#      severity: warning
+#    - alert: Feilende applikasjon detektert
+#      expr: 'babylon_team_notifications_total'
+#      for: 0s
+#      action: |
+#        Slå applikasjonen av og på igjen, utfør `rollback`,
+#        eller slett applikasjonen.
+#
+#        Kan også være nyttig å:
+#        - Les app logs (kubectl logs appname).
+#        - Les Application events (kubectl describe deployment appname)
+#
+#        Om du ønsker å motta disse meldingene i en annen kanal,
+#        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
+#        https://github.com/navikt/teams.
+#        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
+#        namespace, i alfabetisk rekkefølge.
+#      description: |
+#        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
+#        Dersom dere ikke utfører endringer, så vil Babylon nedskalere eller rulle tilbake
+#        applikasjonen tidligst "\{{ $labels.grace_cutoff }}".
+#      documentation: https://github.com/nais/babylon/README.md
+#      severity: warning
+#    - alert: Feilende applikasjon nedskalert
+#      expr: 'babylon_deployment_downscale_total'
+#      for: 0s
+#      action: |
+#        Slå applikasjonen av og på igjen, utfør `rollback`,
+#        eller slett applikasjonen.
+#
+#        Kan også være nyttig å:
+#        - Les app logs (kubectl logs appname).
+#        - Les Application events (kubectl describe deployment appname)
+#
+#        Om du ønsker å motta disse meldingene i en annen kanal,
+#        kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
+#        https://github.com/navikt/teams.
+#        Vi prioriterer også eksisterende kanaler brukt i en NAIS-alert i samme
+#        namespace, i alfabetisk rekkefølge.
+#      description: |
+#        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}",
+#        og derfor nedskallert applikasjonen ettersom den har vært feilende i minst
+#        "\{{ $labels.resource_age }}".
+#      documentation: https://github.com/nais/babylon/README.md
+#      severity: warning
+#---
 apiVersion: nais.io/v1
 kind: Alert
 metadata:
