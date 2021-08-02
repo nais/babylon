@@ -23,6 +23,12 @@ is the exact same as Prometheus' Alertmanager, see their
 Working hours only limit when resource pruning, limiting when alerts are received is awaiting features
 in Alerterator.
 
+## Skipping integration tests on CI
+
+If the need arises for skipping the integration tests, say you need to deploy rapidly to test something you can skip them
+by adding `[skip integration]` to the commit message. **NOTE:** This should _only_ be used when the integration tests are 
+too slow for your needs.
+
 ## Using `make`
 
 ```shell
