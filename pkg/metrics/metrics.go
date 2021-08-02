@@ -137,8 +137,8 @@ func (m *Metrics) IncRuleActivations(
 
 	metric.Inc()
 
-	writeAPI := influxC.WriteAPIBlocking("", m.InfluxdbDatabase)
-	p := influxdb2.NewPoint("rule-activation/autogen",
+	writeAPI := influxC.WriteAPIBlocking("", m.InfluxdbDatabase+"/autogen")
+	p := influxdb2.NewPoint("rule-activation",
 		map[string]string{},
 		map[string]interface{}{"deployment": deployment, "team": team, "reason": reason},
 		time.Now())
