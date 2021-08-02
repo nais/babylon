@@ -45,6 +45,8 @@ spec:
   prometheus:
     enabled: true
     path: "/metrics"
+  influx:
+    instance: influx-nais
   resources:
     limits:
       cpu: 200m
