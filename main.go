@@ -74,6 +74,9 @@ func main() {
 			cfg.InfluxdbUsername.SecretString(),
 			cfg.InfluxdbPassword.SecretString()))
 
+	health, err := influxC.Health(ctx)
+	log.Infof("InfluxDB health: %+v, Error: %+v", health, err)
+
 	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC}
 
 	go gardener(ctx, &s)
