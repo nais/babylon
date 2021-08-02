@@ -50,30 +50,6 @@ spec:
           image: babylon
           ports:
             - containerPort: 8080
-          volumeMounts:
-            - name: config
-              mountPath: /etc/config
-              readOnly: true
-      volumes:
-        - name: config
-          configMap:
-            name: babylon-working-hours
-            items:
-              - key: "working-hours.yaml"
-                path: "./working-hours.yaml"
----
-apiVersion: v1
-kind: ConfigMap
-data:
-  "working-hours.yaml": |
-    - name: working-hours
-      time_intervals:
-        - weekdays: ["monday:friday"]
-          times:
-          - start_time: 10:00
-            end_time: 17:00
-metadata:
-  name: babylon-working-hours
 ---
 apiVersion: v1
 kind: ServiceAccount
