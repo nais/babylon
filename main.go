@@ -36,7 +36,8 @@ func main() {
 	}
 
 	m := metrics.Init(cfg.InfluxdbDatabase)
-	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentRollback, m.DeploymentDownscale, m.TeamNotifications)
+	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentCleanup, m.DeploymentGraceCutoff,
+		m.DeploymentUpdated, m.DeploymentStatus, m.SlackChannelMapping)
 
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)

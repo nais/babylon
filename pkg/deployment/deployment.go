@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
+	"github.com/nais/babylon/pkg/metrics"
 	"github.com/nais/babylon/pkg/service"
 	"github.com/nais/babylon/pkg/utils"
 	log "github.com/sirupsen/logrus"
@@ -41,7 +42,6 @@ func GetFailingDeployments(
 
 DEPLOYMENTS:
 	for i, deployment := range deployments.Items {
-		// graceCutoff := s.Config.GraceCutoff(&deployments.Items[i])
 		minDeploymentAge := time.Now().Add(-s.Config.ResourceAge)
 		enabled := deployment.Labels[config.EnabledLabel]
 		switch {
@@ -66,10 +66,13 @@ DEPLOYMENTS:
 		for j := range rs.Items {
 			if allPodsFailingInReplicaSet(ctx, &rs.Items[j], s) || checkFailingInitContainers(ctx, s, &rs.Items[j]) {
 				fails = append(fails, &deployments.Items[i])
+				s.Metrics.SetDeploymentStatus(&deployments.Items[i],
+					s.SlackChannel(ctx, deployment.Namespace), metrics.FAILING)
 
 				continue DEPLOYMENTS
 			}
 		}
+		s.Metrics.SetDeploymentStatus(&deployments.Items[i], s.SlackChannel(ctx, deployment.Namespace), metrics.OK)
 	}
 
 	return fails
@@ -240,8 +243,8 @@ func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *ap
 		return fmt.Errorf("failed to apply patch: %w", err)
 	}
 	log.Infof("Downscaled deployment %s", deployment.Name)
-	s.Metrics.IncDownscaledDeployments(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace),
-		s.Config.ResourceAge.String())
+	s.Metrics.IncDeploymentCleanup(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace),
+		metrics.DownscaleLabel)
 
 	return nil
 }
@@ -262,11 +265,14 @@ func RollbackDeployment(
 	}
 	log.Infof("Rolled back deployment %s to revision: %s",
 		deployment.Name, replicaSet.Annotations["deployment.kubernetes.io/revision"])
+	s.Metrics.IncDeploymentCleanup(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace),
+		metrics.RollbackLabel)
 
 	return nil
 }
 
 func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) {
+	s.Metrics.SetDeploymentStatus(deployment, s.SlackChannel(ctx, deployment.Namespace), metrics.CLEANUP)
 	rollbacksDisabled := deployment.Labels[config.RollbackLabel] == "false"
 	candidate, err := GetRollbackCandidate(ctx, s, deployment)
 	switch {
@@ -284,8 +290,6 @@ func PruneFailingDeployment(ctx context.Context, s *service.Service, deployment 
 
 			return
 		}
-
-		s.Metrics.IncDeploymentRollbacks(deployment, s.Config.Armed, s.SlackChannel(ctx, deployment.Namespace), candidate)
 	}
 }
 
@@ -329,7 +333,7 @@ func FlagFailingDeployment(ctx context.Context, s *service.Service, deployment *
 	}
 
 	log.Infof("Marking deployment %s as failing", deployment.Name)
-	s.Metrics.IncTeamNotification(deployment, s.SlackChannel(ctx, deployment.Namespace), s.Config.GraceCutoff(deployment))
+	s.Metrics.SetGraceCutoff(deployment, s.Config.GraceCutoff(deployment))
 
 	return nil
 }

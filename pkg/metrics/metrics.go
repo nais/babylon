@@ -6,7 +6,6 @@ import (
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	"github.com/nais/babylon/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
@@ -15,98 +14,121 @@ import (
 
 const Unknown = "unknown"
 
+type DeploymentStatus float64
+
+// OK Deployment is detected as ok.
+const OK DeploymentStatus = 0
+
+// FAILING Deployment is detected as failing and currently in grace period.
+const FAILING DeploymentStatus = 1
+
+// CLEANUP Deployment is in the process of rolling back or downscaling.
+const CLEANUP DeploymentStatus = 2
+
+const (
+	RollbackLabel  = "rollback"
+	DownscaleLabel = "downscale"
+)
+
 type Metrics struct {
-	DeploymentRollback  *prometheus.CounterVec
-	DeploymentDownscale *prometheus.CounterVec
-	RuleActivations     *prometheus.CounterVec
-	TeamNotifications   *prometheus.CounterVec
-	InfluxdbDatabase    string
+	DeploymentCleanup     *prometheus.CounterVec
+	RuleActivations       *prometheus.CounterVec
+	TeamNotifications     *prometheus.CounterVec
+	DeploymentStatus      *prometheus.GaugeVec
+	DeploymentUpdated     *prometheus.GaugeVec
+	DeploymentGraceCutoff *prometheus.GaugeVec
+	SlackChannelMapping   *prometheus.GaugeVec
+	InfluxdbDatabase      string
 }
 
 func Init(database string) Metrics {
 	return Metrics{
-		DeploymentRollback: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "babylon_deployment_rollback_total",
-			Help: "Deployments rolled back",
-		}, []string{
-			"cluster", "deployment", "namespace", "affected_team", "dry_run",
-			"slack_channel", "previous_docker_hash", "current_docker_hash",
-		}),
-		DeploymentDownscale: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "babylon_deployment_downscale_total",
-			Help: "Deployments downscaled",
-		}, []string{"cluster", "deployment", "namespace", "affected_team", "dry_run", "slack_channel", "resource_age"}),
+		DeploymentCleanup: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "babylon_deployment_cleanup_total",
+			Help: "Deployments cleaned up (downscaled or rolled back)",
+		}, []string{"deployment", "namespace", "affected_team", "dry_run", "reason", "slack_channel"}),
 		RuleActivations: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_rule_activations_total",
 			Help: "Rules triggered",
-		}, []string{"cluster", "deployment", "namespace", "affected_team", "reason"}),
-		TeamNotifications: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "babylon_team_notifications_total",
-			Help: "Notifications sent to team regarding failing deployments",
-		}, []string{"cluster", "deployment", "namespace", "affected_team", "slack_channel", "grace_cutoff"}),
+		}, []string{"deployment", "namespace", "affected_team", "reason"}),
+		DeploymentStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "babylon_deployment_status",
+			Help: "Deployment status marked",
+		}, []string{"deployment", "namespace", "affected_team"}),
+		DeploymentUpdated: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "babylon_deployment_last_updated",
+			Help: "When babylon last observed the deployment and updated it's status",
+		}, []string{"deployment", "namespace", "affected_team"}),
+		DeploymentGraceCutoff: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "babylon_deployment_grace_cutoff",
+			Help: "When babylon will become potentially volatile against the deployment, otherwise 0",
+		}, []string{"deployment", "namespace", "affected_team"}),
+		SlackChannelMapping: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "babylon_slack_channel",
+			Help: "Latest observed slack channel by team",
+		}, []string{"deployment", "namespace", "affected_team", "slack_channel"}),
 		InfluxdbDatabase: database,
 	}
 }
 
-func (m *Metrics) IncDownscaledDeployments(
-	deployment *appsv1.Deployment,
-	armed bool,
-	channel string,
-	resourceAge string) {
+func (m Metrics) SetGraceCutoff(deployment *appsv1.Deployment, graceCutoff time.Time) {
 	team, ok := deployment.Labels["team"]
+
 	if !ok {
 		team = Unknown
 	}
 
-	cluster := config.GetEnv("CLUSTER", "unknown")
-	metric, err := m.DeploymentDownscale.GetMetricWith(prometheus.Labels{
-		"cluster": cluster, "deployment": deployment.Name, "namespace": deployment.Namespace, "affected_team": team,
-		"dry_run": strconv.FormatBool(!armed), "slack_channel": channel, "resource_age": resourceAge,
-	})
-	if err != nil {
-		log.Errorf("Metric failed: %+v", err)
-
-		return
-	}
-	log.Debugf("Team %s notified in %s about downscaling", team, channel)
-
-	metric.Inc()
+	m.DeploymentGraceCutoff.With(prometheus.Labels{
+		"deployment": deployment.Name, "namespace": deployment.Namespace,
+		"affected_team": team,
+	}).Set(float64(graceCutoff.Unix()))
 }
 
-func (m *Metrics) IncDeploymentRollbacks(
+func (m Metrics) SetDeploymentStatus(deployment *appsv1.Deployment, channel string, status DeploymentStatus) {
+	team, ok := deployment.Labels["team"]
+
+	if !ok {
+		team = Unknown
+	}
+
+	if status == OK {
+		// if status != OK, graceCutoff is either already set, og will be set during flagging
+		m.SetGraceCutoff(deployment, time.Unix(0, 0))
+	}
+
+	m.SlackChannelMapping.With(prometheus.Labels{
+		"deployment": deployment.Name, "namespace": deployment.Namespace,
+		"affected_team": team, "slack_channel": channel,
+	}).SetToCurrentTime()
+
+	m.DeploymentUpdated.With(prometheus.Labels{
+		"deployment": deployment.Name, "namespace": deployment.Namespace,
+		"affected_team": team,
+	}).SetToCurrentTime()
+
+	m.DeploymentStatus.With(prometheus.Labels{
+		"deployment": deployment.Name, "namespace": deployment.Namespace,
+		"affected_team": team,
+	}).Set(float64(status))
+}
+
+func (m *Metrics) IncDeploymentCleanup(
 	deployment *appsv1.Deployment,
 	armed bool,
 	channel string,
-	currentRs *appsv1.ReplicaSet) {
+	reason string) {
 	team, ok := deployment.Labels["team"]
 	if !ok {
 		team = Unknown
 	}
 
-	previousDockerHash := ""
-	currentDockerHash := ""
+	m.DeploymentCleanup.With(prometheus.Labels{
+		"deployment": deployment.Name, "namespace": deployment.Namespace,
+		"affected_team": team, "dry_run": strconv.FormatBool(!armed), "reason": reason,
+		"slack_channel": channel,
+	}).Inc()
 
-	if len(deployment.Spec.Template.Spec.Containers) > 0 {
-		previousDockerHash = deployment.Spec.Template.Spec.Containers[0].Image
-	}
-	if currentRs != nil && len(currentRs.Spec.Template.Spec.Containers) > 0 {
-		currentDockerHash = currentRs.Spec.Template.Spec.Containers[0].Image
-	}
-
-	cluster := config.GetEnv("CLUSTER", "unknown")
-	metric, err := m.DeploymentRollback.GetMetricWith(prometheus.Labels{
-		"cluster": cluster, "deployment": deployment.Name, "namespace": deployment.Namespace,
-		"affected_team": team, "dry_run": strconv.FormatBool(!armed), "slack_channel": channel,
-		"previous_docker_hash": previousDockerHash, "current_docker_hash": currentDockerHash,
-	})
-	if err != nil {
-		log.Errorf("Metric failed: %+v", err)
-
-		return
-	}
 	log.Debugf("Team %s notified in %s about rollback", team, channel)
-
-	metric.Inc()
 }
 
 func (m *Metrics) IncRuleActivations(
@@ -124,18 +146,10 @@ func (m *Metrics) IncRuleActivations(
 		deployment = Unknown
 	}
 
-	cluster := config.GetEnv("CLUSTER", "unknown")
-	metric, err := m.RuleActivations.GetMetricWith(prometheus.Labels{
-		"cluster": cluster, "deployment": deployment, "namespace": rs.Namespace, "affected_team": team, "reason": reason,
-	})
-	if err != nil {
-		log.Errorf("Metric failed: %+v", err)
-
-		return
-	}
+	m.RuleActivations.With(prometheus.Labels{
+		"deployment": deployment, "namespace": rs.Namespace, "affected_team": team, "reason": reason,
+	}).Inc()
 	log.Debugf("RuleActivationsMetric incremented by team: %s", team)
-
-	metric.Inc()
 
 	writeAPI := influxC.WriteAPIBlocking("", m.InfluxdbDatabase+"/autogen")
 	p := influxdb2.NewPoint("rule-activation",
@@ -143,30 +157,8 @@ func (m *Metrics) IncRuleActivations(
 		map[string]interface{}{"deployment": deployment, "team": team, "reason": reason},
 		time.Now())
 
-	err = writeAPI.WritePoint(context.Background(), p)
+	err := writeAPI.WritePoint(context.Background(), p)
 	if err != nil {
 		log.Errorf("InfluxClient write error: %v", err)
 	}
-}
-
-func (m *Metrics) IncTeamNotification(deployment *appsv1.Deployment, channel string, graceCutoff time.Time) {
-	team, ok := deployment.Labels["team"]
-
-	if !ok {
-		team = Unknown
-	}
-
-	cluster := config.GetEnv("CLUSTER", "unknown")
-	metric, err := m.TeamNotifications.GetMetricWith(prometheus.Labels{
-		"cluster": cluster, "deployment": deployment.Name, "namespace": deployment.Namespace,
-		"affected_team": team, "slack_channel": channel, "grace_cutoff": graceCutoff.Format("2006-01-02 15:04:05 -0700 MST"),
-	})
-	if err != nil {
-		log.Errorf("Metric failed: %+v", err)
-
-		return
-	}
-	log.Debugf("Team %s notified in %s about failing deployment", team, channel)
-
-	metric.Inc()
 }
