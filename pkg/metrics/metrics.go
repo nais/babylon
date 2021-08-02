@@ -147,16 +147,6 @@ func (m *Metrics) IncRuleActivations(
 	if err != nil {
 		log.Errorf("InfluxClient write error: %v", err)
 	}
-
-	queryAPI := influxC.QueryAPI("")
-	// get QueryTableResult
-	result, err := queryAPI.Query(context.Background(), `SELECT * FROM foo`)
-	log.Infof("Result: %v", result)
-	if err == nil {
-		log.Infof("Result record value: %v", result.Record().Value())
-	} else {
-		log.Error(err)
-	}
 }
 
 func (m *Metrics) IncTeamNotification(deployment *appsv1.Deployment, channel string, graceCutoff time.Time) {

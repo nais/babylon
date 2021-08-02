@@ -22,6 +22,7 @@ import (
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
+//nolint:funlen
 func main() {
 	logger.Setup(config.GetEnv("LOG_LEVEL", "debug"))
 	cfg := config.ParseConfig()
@@ -75,7 +76,10 @@ func main() {
 			cfg.InfluxdbPassword.SecretString()))
 
 	health, err := influxC.Health(ctx)
-	log.Infof("InfluxDB health: %+v, Error: %+v", health, err)
+	if err != nil {
+		log.Errorf("Influx health error: %+v", err)
+	}
+	log.Infof("InfluxDB health: %+v", health)
 
 	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC}
 
