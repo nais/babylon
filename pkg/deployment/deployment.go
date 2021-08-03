@@ -78,7 +78,7 @@ DEPLOYMENTS:
 	return fails
 }
 
-func createContainerConfigError(containers []v1.ContainerStatus) bool {
+func IsCreateContainerConfigError(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil {
@@ -92,11 +92,11 @@ func createContainerConfigError(containers []v1.ContainerStatus) bool {
 	return false
 }
 
-func containerImageCheckFail(containers []v1.ContainerStatus) bool {
+func IsContainerImageCheckFail(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
 		waiting := containerStatus.State.Waiting
 		if waiting != nil {
-			log.Tracef("Waiting (ContainerImageCheckFail): %+v", waiting)
+			log.Tracef("Waiting (IsContainerImageCheckFail): %+v", waiting)
 		}
 		if waiting != nil && (waiting.Reason == ImagePullBackOff || waiting.Reason == ErrImagePull) {
 			return true
@@ -106,14 +106,14 @@ func containerImageCheckFail(containers []v1.ContainerStatus) bool {
 	return false
 }
 
-func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerStatus) bool {
+func IsContainerCrashLoopBackOff(restartThreshold int32, containers []v1.ContainerStatus) bool {
 	for _, container := range containers {
 		waiting := container.State.Waiting
 		if waiting != nil {
-			log.Tracef("Waiting (ContainerCrashLoopBackOff): %+v", waiting)
+			log.Tracef("Waiting (IsContainerCrashLoopBackOff): %+v", waiting)
 		}
 
-		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > config.RestartThreshold {
+		if waiting != nil && waiting.Reason == CrashLoopBackOff && container.RestartCount > restartThreshold {
 			return true
 		}
 	}
@@ -121,11 +121,12 @@ func containerCrashLoopBackOff(config *config.Config, containers []v1.ContainerS
 	return false
 }
 
+// FIXME: Delete when judge is ready.
 func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
 	switch {
 	case pod.Status.Phase == v1.PodRunning:
 		log.Tracef("Pod: %s running", pod.Name)
-		if containerCrashLoopBackOff(config, pod.Status.ContainerStatuses) {
+		if IsContainerCrashLoopBackOff(config.RestartThreshold, pod.Status.ContainerStatuses) {
 			return true, CrashLoopBackOff
 		}
 
@@ -136,10 +137,10 @@ func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
 		return false, ""
 	case pod.Status.Phase == v1.PodPending:
 		log.Tracef("Pod: %s pending", pod.Name)
-		if containerImageCheckFail(pod.Status.ContainerStatuses) {
+		if IsContainerImageCheckFail(pod.Status.ContainerStatuses) {
 			return true, ImagePullBackOff
 		}
-		if createContainerConfigError(pod.Status.ContainerStatuses) {
+		if IsCreateContainerConfigError(pod.Status.ContainerStatuses) {
 			return true, CreateContainerConfigError
 		}
 
@@ -157,6 +158,7 @@ func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
 	}
 }
 
+// FIXME: Delete when judge is ready.
 func checkFailingInitContainers(ctx context.Context, s *service.Service, rs *appsv1.ReplicaSet) bool {
 	pods, err := getPodsFromReplicaSet(ctx, s, rs)
 	if err != nil {
@@ -164,7 +166,7 @@ func checkFailingInitContainers(ctx context.Context, s *service.Service, rs *app
 	}
 
 	for i := range pods.Items {
-		if IsInitContainerFailed(s.Config, pods.Items[i].Status.InitContainerStatuses) {
+		if IsInitContainerFailed(s.Config.RestartThreshold, pods.Items[i].Status.InitContainerStatuses) {
 			log.Infof("Init container failing for rs %s", rs.Name)
 
 			return true
@@ -174,10 +176,26 @@ func checkFailingInitContainers(ctx context.Context, s *service.Service, rs *app
 	return false
 }
 
-func IsInitContainerFailed(config *config.Config, initContainers []v1.ContainerStatus) bool {
-	return containerCrashLoopBackOff(config, initContainers) || containerImageCheckFail(initContainers)
+func IsInitContainerFailed(restartThreshold int32, initContainers []v1.ContainerStatus) bool {
+	return IsContainerCrashLoopBackOff(restartThreshold, initContainers) || IsContainerImageCheckFail(initContainers)
 }
 
+func GetReplicaSetsByDeployment(ctx context.Context,
+	c client.Client,
+	deployment *appsv1.Deployment) (appsv1.ReplicaSetList, error) {
+	labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
+
+	l := &client.ListOptions{LabelSelector: labelSelector.AsSelector(), Namespace: deployment.Namespace}
+	var replicaSets appsv1.ReplicaSetList
+	err := c.List(ctx, &replicaSets, l)
+	if err != nil {
+		return appsv1.ReplicaSetList{}, fmt.Errorf("%w:%v", ErrFetchReplicasetFailed, err)
+	}
+
+	return replicaSets, nil
+}
+
+// FIXME: Delete when judge is ready.
 func getReplicaSetsByDeployment(
 	ctx context.Context,
 	s *service.Service,
@@ -194,6 +212,18 @@ func getReplicaSetsByDeployment(
 	return replicaSets, nil
 }
 
+func GetPodsFromReplicaSet(ctx context.Context, c client.Client, rs *appsv1.ReplicaSet) (*v1.PodList, error) {
+	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
+	pods := &v1.PodList{}
+	err := c.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
+	if err != nil {
+		return nil, fmt.Errorf("could not get pods from replica set: %w", err)
+	}
+
+	return pods, nil
+}
+
+// FIXME: Delete when judge is ready.
 func getPodsFromReplicaSet(ctx context.Context, s *service.Service, rs *appsv1.ReplicaSet) (*v1.PodList, error) {
 	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
 	pods := &v1.PodList{}
@@ -205,6 +235,7 @@ func getPodsFromReplicaSet(ctx context.Context, s *service.Service, rs *appsv1.R
 	return pods, nil
 }
 
+// FIXME: Delete when judge is ready.
 func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *service.Service) bool {
 	if *rs.Spec.Replicas == 0 {
 		return false

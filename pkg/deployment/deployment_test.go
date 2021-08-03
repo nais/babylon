@@ -129,7 +129,8 @@ func TestContainersWithImageCheckFailed(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			pod := createPod(tt.State, tt.Phase)
-			res, reason := deployment.ShouldPodBeDeleted(nil, &pod)
+			cfg := config.DefaultConfig()
+			res, reason := deployment.ShouldPodBeDeleted(&cfg, &pod)
 
 			if res != tt.Expected || reason != tt.ExpectedReason {
 				t.Fatalf("Expected pod to be marked for deletion: %v, with reason %v, got result: %v, with reason %v, pod: %+v", tt.Expected, tt.ExpectedReason, res, reason, pod)
