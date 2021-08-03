@@ -1,4 +1,4 @@
-package deployment_test
+package core
 
 import (
 	"github.com/nais/babylon/pkg/config"
@@ -74,9 +74,10 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			cfg := config.DefaultConfig()
+			judge := NewDeploymentJudge(&cfg, nil)
 			pod := createPod(tt.State, tt.RestartCount)
 			cfg.RestartThreshold = tt.RestartThreshold
-			res, reason := deployment.ShouldPodBeDeleted(&cfg, &pod)
+			res, reason := judge.shouldPodBeDeleted(&pod)
 
 			if res != tt.Expected || reason != tt.ExpectedReason {
 				t.Fatalf("Expected pod to be marked for deletion: %v, with reason %v, got result: %v, with reason %v, pod: %+v", tt.Expected, tt.ExpectedReason, res, reason, pod)
@@ -130,7 +131,8 @@ func TestContainersWithImageCheckFailed(t *testing.T) {
 			t.Parallel()
 			pod := createPod(tt.State, tt.Phase)
 			cfg := config.DefaultConfig()
-			res, reason := deployment.ShouldPodBeDeleted(&cfg, &pod)
+			judge := NewDeploymentJudge(&cfg, nil)
+			res, reason := judge.shouldPodBeDeleted(&pod)
 
 			if res != tt.Expected || reason != tt.ExpectedReason {
 				t.Fatalf("Expected pod to be marked for deletion: %v, with reason %v, got result: %v, with reason %v, pod: %+v", tt.Expected, tt.ExpectedReason, res, reason, pod)
