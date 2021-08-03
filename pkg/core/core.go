@@ -22,9 +22,7 @@ func NewDeploymentJudge(config *config.Config, client client.Client) *Deployment
 	return &DeploymentJudge{client: client, restartThreshold: config.RestartThreshold, resourceAge: config.ResourceAge}
 }
 
-// TODO: Write tests
-
-func (d *DeploymentJudge) Failing(ctx context.Context, deployments appsv1.DeploymentList) []*appsv1.Deployment {
+func (d *DeploymentJudge) Failing(ctx context.Context, deployments *appsv1.DeploymentList) []*appsv1.Deployment {
 	var fails []*appsv1.Deployment
 	for i := range deployments.Items {
 		if d.isFailing(ctx, &deployments.Items[i]) {

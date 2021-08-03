@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
@@ -34,7 +33,7 @@ const (
 	ChangeCauseAnnotationKey   = "kubernetes.io/change-cause"
 )
 
-func GetFailingDeployments(
+/*func GetFailingDeployments(
 	ctx context.Context,
 	s *service.Service,
 	deployments *appsv1.DeploymentList) []*appsv1.Deployment {
@@ -76,7 +75,7 @@ DEPLOYMENTS:
 	}
 
 	return fails
-}
+}*/
 
 func IsCreateContainerConfigError(containers []v1.ContainerStatus) bool {
 	for _, containerStatus := range containers {
@@ -121,61 +120,6 @@ func IsContainerCrashLoopBackOff(restartThreshold int32, containers []v1.Contain
 	return false
 }
 
-// FIXME: Delete when judge is ready.
-func ShouldPodBeDeleted(config *config.Config, pod *v1.Pod) (bool, string) {
-	switch {
-	case pod.Status.Phase == v1.PodRunning:
-		log.Tracef("Pod: %s running", pod.Name)
-		if IsContainerCrashLoopBackOff(config.RestartThreshold, pod.Status.ContainerStatuses) {
-			return true, CrashLoopBackOff
-		}
-
-		return false, ""
-	case pod.Status.Phase == v1.PodSucceeded:
-		log.Tracef("Pod: %s succeeded", pod.Name)
-
-		return false, ""
-	case pod.Status.Phase == v1.PodPending:
-		log.Tracef("Pod: %s pending", pod.Name)
-		if IsContainerImageCheckFail(pod.Status.ContainerStatuses) {
-			return true, ImagePullBackOff
-		}
-		if IsCreateContainerConfigError(pod.Status.ContainerStatuses) {
-			return true, CreateContainerConfigError
-		}
-
-		return false, ""
-	case pod.Status.Phase == v1.PodFailed:
-		log.Tracef("Pod: %s failed", pod.Name)
-
-		return false, "" // should be true?
-	case pod.Status.Phase == v1.PodUnknown:
-		log.Tracef("Pod: %s unknown", pod.Name)
-
-		return false, ""
-	default:
-		return false, ""
-	}
-}
-
-// FIXME: Delete when judge is ready.
-func checkFailingInitContainers(ctx context.Context, s *service.Service, rs *appsv1.ReplicaSet) bool {
-	pods, err := getPodsFromReplicaSet(ctx, s, rs)
-	if err != nil {
-		return false
-	}
-
-	for i := range pods.Items {
-		if IsInitContainerFailed(s.Config.RestartThreshold, pods.Items[i].Status.InitContainerStatuses) {
-			log.Infof("Init container failing for rs %s", rs.Name)
-
-			return true
-		}
-	}
-
-	return false
-}
-
 func IsInitContainerFailed(restartThreshold int32, initContainers []v1.ContainerStatus) bool {
 	return IsContainerCrashLoopBackOff(restartThreshold, initContainers) || IsContainerImageCheckFail(initContainers)
 }
@@ -195,23 +139,6 @@ func GetReplicaSetsByDeployment(ctx context.Context,
 	return replicaSets, nil
 }
 
-// FIXME: Delete when judge is ready.
-func getReplicaSetsByDeployment(
-	ctx context.Context,
-	s *service.Service,
-	deployment *appsv1.Deployment) (appsv1.ReplicaSetList, error) {
-	labelSelector := labels.Set(deployment.Spec.Selector.MatchLabels)
-
-	l := &client.ListOptions{LabelSelector: labelSelector.AsSelector(), Namespace: deployment.Namespace}
-	var replicaSets appsv1.ReplicaSetList
-	err := s.Client.List(ctx, &replicaSets, l)
-	if err != nil {
-		return appsv1.ReplicaSetList{}, fmt.Errorf("%w:%v", ErrFetchReplicasetFailed, err)
-	}
-
-	return replicaSets, nil
-}
-
 func GetPodsFromReplicaSet(ctx context.Context, c client.Client, rs *appsv1.ReplicaSet) (*v1.PodList, error) {
 	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
 	pods := &v1.PodList{}
@@ -221,48 +148,6 @@ func GetPodsFromReplicaSet(ctx context.Context, c client.Client, rs *appsv1.Repl
 	}
 
 	return pods, nil
-}
-
-// FIXME: Delete when judge is ready.
-func getPodsFromReplicaSet(ctx context.Context, s *service.Service, rs *appsv1.ReplicaSet) (*v1.PodList, error) {
-	labelSelector := labels.Set(rs.Spec.Selector.MatchLabels)
-	pods := &v1.PodList{}
-	err := s.Client.List(ctx, pods, &client.ListOptions{LabelSelector: labelSelector.AsSelector()})
-	if err != nil {
-		return nil, fmt.Errorf("could not get pods from replica set: %w", err)
-	}
-
-	return pods, nil
-}
-
-// FIXME: Delete when judge is ready.
-func allPodsFailingInReplicaSet(ctx context.Context, rs *appsv1.ReplicaSet, s *service.Service) bool {
-	if *rs.Spec.Replicas == 0 {
-		return false
-	}
-
-	pods, err := getPodsFromReplicaSet(ctx, s, rs)
-	if err != nil {
-		log.Errorf("finding pods for replicaSet %s failed", rs.Name)
-
-		return false
-	}
-
-	failedPods := 0
-	var reasons []string
-	for i := range pods.Items {
-		if fail, reason := ShouldPodBeDeleted(s.Config, &pods.Items[i]); fail {
-			failedPods++
-			reasons = append(reasons, reason)
-			s.Metrics.IncRuleActivations(s.InfluxClient, rs, reason)
-		}
-	}
-
-	if failedPods > 0 {
-		log.Debugf("%d/%d failing pods in replicaset %s due to %v", failedPods, len(pods.Items), rs.Name, reasons)
-	}
-
-	return failedPods == len(pods.Items)
 }
 
 func DownscaleDeployment(ctx context.Context, s *service.Service, deployment *appsv1.Deployment) error {
@@ -328,7 +213,7 @@ func GetRollbackCandidate(
 	ctx context.Context,
 	s *service.Service,
 	deployment *appsv1.Deployment) (*appsv1.ReplicaSet, error) {
-	rs, err := getReplicaSetsByDeployment(ctx, s, deployment)
+	rs, err := GetReplicaSetsByDeployment(ctx, s.Client, deployment)
 	if err != nil {
 		log.Errorf("Could not find replicasets for deploy %s", deployment.Name)
 

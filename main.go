@@ -8,6 +8,7 @@ import (
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/nais/babylon/pkg/config"
+	"github.com/nais/babylon/pkg/core"
 	"github.com/nais/babylon/pkg/deployment"
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/metrics"
@@ -93,6 +94,7 @@ func main() {
 func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
 	ticker := time.Tick(s.Config.TickRate)
+	judge := core.NewDeploymentJudge(s.Config, s.Client)
 
 	for {
 		<-ticker
@@ -108,7 +110,7 @@ func gardener(ctx context.Context, s *service.Service) {
 			continue
 		}
 
-		fails := deployment.GetFailingDeployments(ctx, s, deployments)
+		fails := judge.Failing(ctx, deployments)
 		var deploymentFails []*appsv1.Deployment
 		for _, f := range fails {
 			if s.Config.IsNamespaceAllowed(f.Namespace) {
