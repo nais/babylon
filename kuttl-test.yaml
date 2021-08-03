@@ -14,5 +14,5 @@ commands:
   # TODO: sleep here does not work and the resources are created to quickly before this, race conditions :)
   - command: sleep 5
   - command: kubectl wait --timeout=60s --for condition=ready pod -l app=babylon-test --namespace=babylon-test
-timeout: 60
+timeout: 120
 parallel: 8
