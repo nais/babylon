@@ -1,4 +1,4 @@
-package core
+package criteria
 
 import (
 	"github.com/nais/babylon/pkg/config"
@@ -74,7 +74,7 @@ func TestContainersInCrashLoopBackOff(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			cfg := config.DefaultConfig()
-			judge := NewDeploymentJudge(&cfg, nil)
+			judge := NewCoreCriteriaJudge(&cfg, nil)
 			pod := createPod(tt.State, tt.RestartCount)
 			cfg.RestartThreshold = tt.RestartThreshold
 			res, reason := judge.shouldPodBeDeleted(&pod)
@@ -131,7 +131,7 @@ func TestContainersWithImageCheckFailed(t *testing.T) {
 			t.Parallel()
 			pod := createPod(tt.State, tt.Phase)
 			cfg := config.DefaultConfig()
-			judge := NewDeploymentJudge(&cfg, nil)
+			judge := NewCoreCriteriaJudge(&cfg, nil)
 			res, reason := judge.shouldPodBeDeleted(&pod)
 
 			if res != tt.Expected || reason != tt.ExpectedReason {

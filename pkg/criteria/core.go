@@ -1,4 +1,4 @@
-package core
+package criteria
 
 import (
 	"context"
@@ -12,17 +12,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type DeploymentJudge struct {
+type CoreCriteriaJudge struct {
 	client           client.Client
 	restartThreshold int32
 	resourceAge      time.Duration
 }
 
-func NewDeploymentJudge(config *config.Config, client client.Client) *DeploymentJudge {
-	return &DeploymentJudge{client: client, restartThreshold: config.RestartThreshold, resourceAge: config.ResourceAge}
+func NewCoreCriteriaJudge(config *config.Config, client client.Client) *CoreCriteriaJudge {
+	return &CoreCriteriaJudge{client: client, restartThreshold: config.RestartThreshold, resourceAge: config.ResourceAge}
 }
 
-func (d *DeploymentJudge) Failing(ctx context.Context, deployments *appsv1.DeploymentList) []*appsv1.Deployment {
+func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.DeploymentList) []*appsv1.Deployment {
 	var fails []*appsv1.Deployment
 	for i := range deployments.Items {
 		if d.isFailing(ctx, &deployments.Items[i]) {
@@ -33,7 +33,7 @@ func (d *DeploymentJudge) Failing(ctx context.Context, deployments *appsv1.Deplo
 	return fails
 }
 
-func (d *DeploymentJudge) isFailing(ctx context.Context, deploy *appsv1.Deployment) bool {
+func (d *CoreCriteriaJudge) isFailing(ctx context.Context, deploy *appsv1.Deployment) bool {
 	minDeploymentAge := time.Now().Add(-d.resourceAge)
 	if deploy.CreationTimestamp.After(minDeploymentAge) {
 		log.Debugf("deployment %s too young, skipping (%v)", deploy.Name, deploy.CreationTimestamp)
@@ -61,11 +61,11 @@ func (d *DeploymentJudge) isFailing(ctx context.Context, deploy *appsv1.Deployme
 	return false
 }
 
-func (d *DeploymentJudge) judge(ctx context.Context, set *appsv1.ReplicaSet) bool {
+func (d *CoreCriteriaJudge) judge(ctx context.Context, set *appsv1.ReplicaSet) bool {
 	return d.allPodsFailingInReplicaset(ctx, set) || d.initPodsFailing(ctx, set)
 }
 
-func (d *DeploymentJudge) allPodsFailingInReplicaset(ctx context.Context, set *appsv1.ReplicaSet) bool {
+func (d *CoreCriteriaJudge) allPodsFailingInReplicaset(ctx context.Context, set *appsv1.ReplicaSet) bool {
 	if *set.Spec.Replicas == 0 {
 		return false
 	}
@@ -93,7 +93,7 @@ func (d *DeploymentJudge) allPodsFailingInReplicaset(ctx context.Context, set *a
 	return failedPods == len(pods.Items)
 }
 
-func (d *DeploymentJudge) initPodsFailing(ctx context.Context, set *appsv1.ReplicaSet) bool {
+func (d *CoreCriteriaJudge) initPodsFailing(ctx context.Context, set *appsv1.ReplicaSet) bool {
 	pods, err := deployment.GetPodsFromReplicaSet(ctx, d.client, set)
 	if err != nil {
 		return false
@@ -110,7 +110,7 @@ func (d *DeploymentJudge) initPodsFailing(ctx context.Context, set *appsv1.Repli
 	return false
 }
 
-func (d *DeploymentJudge) shouldPodBeDeleted(pod *v1.Pod) (bool, string) {
+func (d *CoreCriteriaJudge) shouldPodBeDeleted(pod *v1.Pod) (bool, string) {
 	switch {
 	case pod.Status.Phase == v1.PodRunning:
 		log.Tracef("Pod: %s running", pod.Name)

@@ -8,7 +8,7 @@ import (
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/nais/babylon/pkg/config"
-	"github.com/nais/babylon/pkg/core"
+	"github.com/nais/babylon/pkg/criteria"
 	"github.com/nais/babylon/pkg/deployment"
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/metrics"
@@ -94,7 +94,7 @@ func main() {
 func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
 	ticker := time.Tick(s.Config.TickRate)
-	judge := core.NewDeploymentJudge(s.Config, s.Client)
+	judge := criteria.NewCoreCriteriaJudge(s.Config, s.Client)
 
 	for {
 		<-ticker
