@@ -134,6 +134,7 @@ spec:
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
         i namespace "\{{ $labels.namespace}}". Siden deploymentet hadde minst en fungerende
         pod fra en tidligere revisjon, så har den blitt rullet tilbake til den fungerende utgaven.
+      action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
       severity: good
     - alert: Feilende applikasjon detektert
@@ -148,6 +149,7 @@ spec:
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
         i namespace "\{{ $labels.namespace}}".
+      action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon nedskalert
@@ -156,5 +158,6 @@ spec:
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
         i namespace "\{{ $labels.namespace}}".
+      action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
