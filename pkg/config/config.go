@@ -13,7 +13,6 @@ import (
 	"github.com/prometheus/alertmanager/timeinterval"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	appsv1 "k8s.io/api/apps/v1"
 )
 
 const (
@@ -189,49 +188,4 @@ func GetEnv(name, fallback string) string {
 	}
 
 	return fallback
-}
-
-func (c *Config) IsNamespaceAllowed(namespace string) bool {
-	if !c.UseAllowedNamespaces {
-		return true
-	}
-
-	for i := range c.AllowedNamespaces {
-		if c.AllowedNamespaces[i] == "" {
-			continue
-		}
-		if strings.Contains(namespace, c.AllowedNamespaces[i]) || strings.Contains(c.AllowedNamespaces[i], namespace) {
-			log.Tracef("namespace %s allowed", namespace)
-
-			return true
-		}
-	}
-	log.Tracef("namespace %s not allowed", namespace)
-
-	return false
-}
-
-func (c *Config) GraceDuration(deployment *appsv1.Deployment) time.Duration {
-	gracePeriod, err := time.ParseDuration(deployment.Labels[GracePeriodLabel])
-	if err != nil {
-		return c.GracePeriod
-	}
-
-	return gracePeriod
-}
-
-func (c *Config) GraceCutoff(deployment *appsv1.Deployment) time.Time {
-	return time.Now().Add(c.GraceDuration(deployment))
-}
-
-func (c *Config) InActivePeriod(time time.Time) bool {
-	for _, t := range c.ActiveTimeIntervals {
-		for _, i := range t {
-			if i.ContainsTime(time) {
-				return true
-			}
-		}
-	}
-
-	return false
 }

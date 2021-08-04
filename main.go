@@ -9,7 +9,6 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/criteria"
-	"github.com/nais/babylon/pkg/deployment"
 	"github.com/nais/babylon/pkg/logger"
 	"github.com/nais/babylon/pkg/metrics"
 	"github.com/nais/babylon/pkg/service"
@@ -90,11 +89,12 @@ func main() {
 	log.Fatal(mgr.Start(ctx))
 }
 
-//nolint:cyclop
 func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
 	ticker := time.Tick(s.Config.TickRate)
-	judge := criteria.NewCoreCriteriaJudge(s.Config, s.Client)
+	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client)
+	cleanUpJudge := criteria.NewCleanUpJudge(s.Config)
+	executioner := criteria.NewExecutioner(s.Config, s.Client)
 
 	for {
 		<-ticker
@@ -104,51 +104,8 @@ func gardener(ctx context.Context, s *service.Service) {
 			continue
 		}
 
-		if !s.Config.InActivePeriod(time.Now()) {
-			log.Debug("sleeping due to inactive period")
-
-			continue
-		}
-
-		fails := judge.Failing(ctx, deployments)
-		var deploymentFails []*appsv1.Deployment
-		for _, f := range fails {
-			if s.Config.IsNamespaceAllowed(f.Namespace) {
-				deploymentFails = append(deploymentFails, f)
-			}
-		}
-
-		for _, deploy := range deploymentFails {
-			if deploy.Annotations[config.NotificationAnnotation] != "" {
-				lastNotified, err := time.Parse(time.RFC3339, deploy.Annotations[config.NotificationAnnotation])
-				switch {
-				case err != nil:
-					log.Warnf("Could not parse %s for %s: %v", config.NotificationAnnotation, deploy.Name, err)
-
-					continue
-				case time.Since(lastNotified) < s.Config.GraceDuration(deploy):
-					log.Infof(
-						"not yet ready to prune deployment %s, too early since last notification: %s",
-						deploy.Name, lastNotified.String())
-
-					continue
-				case time.Since(lastNotified) < s.Config.NotificationTimeout:
-					log.Infof("Team already notified at %s, skipping deploy %s", lastNotified.String(), deploy.Name)
-
-					continue
-				}
-			} else {
-				err := deployment.FlagFailingDeployment(ctx, s, deploy)
-				if err != nil {
-					log.Errorf("failed to add notification annotation, err: %v", err)
-				}
-
-				continue
-			}
-
-			if deploy.Annotations[deployment.ChangeCauseAnnotationKey] != deployment.RollbackCauseAnnotation {
-				deployment.PruneFailingDeployment(ctx, s, deploy)
-			}
-		}
+		fails := coreCriteriaJudge.Failing(ctx, deployments)
+		deploymentFails := cleanUpJudge.Judge(fails)
+		executioner.Kill(ctx, deploymentFails)
 	}
 }

@@ -16,12 +16,21 @@ type CleanUpJudge struct {
 	notificationTimeout  time.Duration
 }
 
-func (j *CleanUpJudge) Judge(deployments *appsv1.DeploymentList) []*appsv1.Deployment {
+func NewCleanUpJudge(config *config.Config) *CleanUpJudge {
+	return &CleanUpJudge{
+		useAllowedNamespaces: config.UseAllowedNamespaces,
+		allowedNamespaces:    config.AllowedNamespaces,
+		gracePeriod:          config.GracePeriod,
+		notificationTimeout:  config.NotificationTimeout,
+	}
+}
+
+func (j *CleanUpJudge) Judge(deployments []*appsv1.Deployment) []*appsv1.Deployment {
 	var filteredDeployments []*appsv1.Deployment
-	for i := range deployments.Items {
-		if j.filterByAllowedNamespace(&deployments.Items[i]) &&
-			j.filterByNotified(&deployments.Items[i]) {
-			filteredDeployments = append(filteredDeployments, &deployments.Items[i])
+	for i := range deployments {
+		if j.filterByAllowedNamespace(deployments[i]) &&
+			j.filterByNotified(deployments[i]) {
+			filteredDeployments = append(filteredDeployments, deployments[i])
 		}
 	}
 
@@ -78,14 +87,11 @@ func (j *CleanUpJudge) filterByNotified(deployment *appsv1.Deployment) bool {
 func (j *CleanUpJudge) graceDuration(deployment *appsv1.Deployment) time.Duration {
 	gracePeriod, err := time.ParseDuration(deployment.Labels[config.GracePeriodLabel])
 	if err != nil {
-		log.Infof("Failed to parse duration: %s", deployment.Labels[config.GracePeriodLabel])
+		log.Infof("Failed to parse duration for deployment %s: %s",
+			deployment.Name, deployment.Labels[config.GracePeriodLabel])
 
 		return j.gracePeriod
 	}
 
 	return gracePeriod
 }
-
-// func (j *CleanUpJudge) graceCutoff(deployment *appsv1.Deployment) time.Time {
-//	return time.Now().Add(j.graceDuration(deployment))
-//}

@@ -2,6 +2,7 @@ package criteria
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
@@ -26,6 +27,13 @@ func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.Dep
 	var fails []*appsv1.Deployment
 	for i := range deployments.Items {
 		if d.isFailing(ctx, &deployments.Items[i]) {
+			err := d.flagFailingDeployment(ctx, &deployments.Items[i])
+			if err != nil {
+				log.Errorf("failed to add notification annotation, err: %v", err)
+
+				continue
+			}
+
 			fails = append(fails, &deployments.Items[i])
 		}
 	}
@@ -63,6 +71,23 @@ func (d *CoreCriteriaJudge) isFailing(ctx context.Context, deploy *appsv1.Deploy
 
 func (d *CoreCriteriaJudge) judge(ctx context.Context, set *appsv1.ReplicaSet) bool {
 	return d.allPodsFailingInReplicaset(ctx, set) || d.initPodsFailing(ctx, set)
+}
+
+func (d *CoreCriteriaJudge) flagFailingDeployment(ctx context.Context, deployment *appsv1.Deployment) error {
+	if deployment.Annotations[config.NotificationAnnotation] == "" {
+		patch := client.MergeFrom(deployment.DeepCopy())
+		deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
+		err := d.client.Patch(ctx, deployment, patch)
+		if err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		log.Infof("Marking deployment %s as failing", deployment.Name)
+
+		return nil
+	}
+
+	return nil
 }
 
 func (d *CoreCriteriaJudge) allPodsFailingInReplicaset(ctx context.Context, set *appsv1.ReplicaSet) bool {

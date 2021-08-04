@@ -1,7 +1,8 @@
-package config
+package criteria
 
 import (
-	"github.com/prometheus/alertmanager/config"
+	"github.com/nais/babylon/pkg/config"
+	promconfig "github.com/prometheus/alertmanager/config"
 	"github.com/prometheus/alertmanager/timeinterval"
 	"gopkg.in/yaml.v2"
 	"testing"
@@ -79,9 +80,9 @@ func TestConfig_InActivePeriod(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := DefaultConfig()
+			cfg := config.DefaultConfig()
 			if tt.In != "" {
-				var intervals []config.MuteTimeInterval
+				var intervals []promconfig.MuteTimeInterval
 				_ = yaml.Unmarshal([]byte(tt.In), &intervals)
 				cfg.ActiveTimeIntervals = map[string][]timeinterval.TimeInterval{}
 				for _, mti := range intervals {
@@ -89,8 +90,10 @@ func TestConfig_InActivePeriod(t *testing.T) {
 				}
 			}
 
+			executioner := NewExecutioner(&cfg, nil)
+
 			for i, timings := range tt.Times {
-				if cfg.InActivePeriod(timings) != tt.Expected[i] {
+				if executioner.inActivePeriod(timings) != tt.Expected[i] {
 					t.Fatalf("Expected %v to be in active period: %+v", timings, cfg.ActiveTimeIntervals)
 				}
 			}

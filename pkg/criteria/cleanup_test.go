@@ -93,9 +93,9 @@ func TestCleanUpJudge_filterByNamespace(t *testing.T) {
 }
 
 func TestCleanUpJudge_Judge_not_allowed_namespace(t *testing.T) {
-	var deploymentList appsv1.DeploymentList
+	var deploymentList []*appsv1.Deployment
 	deployment := createDeployment("", nil, "")
-	deploymentList.Items = append(deploymentList.Items, deployment)
+	deploymentList = append(deploymentList, &deployment)
 
 	judge := CleanUpJudge{
 		useAllowedNamespaces: false,
@@ -104,7 +104,7 @@ func TestCleanUpJudge_Judge_not_allowed_namespace(t *testing.T) {
 		notificationTimeout:  0,
 	}
 
-	actual := judge.Judge(&deploymentList)
+	actual := judge.Judge(deploymentList)
 
 	if len(actual) < 0 {
 		t.Fatalf("Expected actual length of to be > 0, actual = %v", actual)
@@ -113,7 +113,7 @@ func TestCleanUpJudge_Judge_not_allowed_namespace(t *testing.T) {
 
 func TestCleanUpJudge_Judge_allowed_namespaces(t *testing.T) {
 	timeout, _ := time.ParseDuration("30s")
-	var deploymentList appsv1.DeploymentList
+	var deploymentList []*appsv1.Deployment
 	deployment := createDeployment("not", map[string]string{
 		config.GracePeriodLabel:       time.Now().String(),
 		config.NotificationAnnotation: time.Now().Format(time.RFC3339)},
@@ -122,7 +122,7 @@ func TestCleanUpJudge_Judge_allowed_namespaces(t *testing.T) {
 		config.GracePeriodLabel:       time.Now().String(),
 		config.NotificationAnnotation: time.Now().Add(-timeout).Format(time.RFC3339)},
 		"0s")
-	deploymentList.Items = append(deploymentList.Items, deployment, deployment2)
+	deploymentList = append(deploymentList, &deployment, &deployment2)
 
 	judge := CleanUpJudge{
 		useAllowedNamespaces: true,
@@ -131,7 +131,7 @@ func TestCleanUpJudge_Judge_allowed_namespaces(t *testing.T) {
 		notificationTimeout:  timeout,
 	}
 
-	actual := judge.Judge(&deploymentList)
+	actual := judge.Judge(deploymentList)
 
 	if len(actual) != 1 {
 		t.Fatalf("Expected actual length of to be 1, actual = %v", actual)
@@ -139,12 +139,12 @@ func TestCleanUpJudge_Judge_allowed_namespaces(t *testing.T) {
 }
 
 func TestCleanUpJudge_Judge_grace_period(t *testing.T) {
-	var deploymentList appsv1.DeploymentList
+	var deploymentList []*appsv1.Deployment
 	deployment := createDeployment("", map[string]string{
 		config.GracePeriodLabel:       "1s",
 		config.NotificationAnnotation: time.Now().Format(time.RFC3339)},
 		"10s")
-	deploymentList.Items = append(deploymentList.Items, deployment)
+	deploymentList = append(deploymentList, &deployment)
 
 	//gracePeriod, _ := time.ParseDuration("10s")
 	judge := CleanUpJudge{
@@ -154,7 +154,7 @@ func TestCleanUpJudge_Judge_grace_period(t *testing.T) {
 		notificationTimeout:  0,
 	}
 
-	actual := judge.Judge(&deploymentList)
+	actual := judge.Judge(deploymentList)
 
 	if len(actual) > 0 {
 		t.Fatalf("Expected actual length of to be 0, actual = %v", actual)
@@ -162,9 +162,9 @@ func TestCleanUpJudge_Judge_grace_period(t *testing.T) {
 }
 
 func TestCleanUpJudge_Judge_notification_timeout(t *testing.T) {
-	var deploymentList appsv1.DeploymentList
+	var deploymentList []*appsv1.Deployment
 	deployment := createDeployment("", map[string]string{config.NotificationAnnotation: time.Now().Format(time.RFC3339)}, "10s")
-	deploymentList.Items = append(deploymentList.Items, deployment)
+	deploymentList = append(deploymentList, &deployment)
 
 	notificationTimeout, _ := time.ParseDuration("10s")
 	judge := CleanUpJudge{
@@ -174,7 +174,7 @@ func TestCleanUpJudge_Judge_notification_timeout(t *testing.T) {
 		notificationTimeout:  notificationTimeout,
 	}
 
-	actual := judge.Judge(&deploymentList)
+	actual := judge.Judge(deploymentList)
 
 	if len(actual) > 0 {
 		t.Fatalf("Expected actual length of to be 0, actual = %v", actual)
