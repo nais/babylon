@@ -1,8 +1,10 @@
-# Babylon - Project Gardener [![build](https://github.com/nais/babylon/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/nais/babylon/actions/workflows/pipeline.yaml) [![CodeQL](https://github.com/nais/babylon/actions/workflows/codeql.yaml/badge.svg)](https://github.com/nais/babylon/actions/workflows/codeql.yaml) [![Go Report Card](https://goreportcard.com/badge/github.com/nais/babylon)](https://goreportcard.com/report/github.com/nais/babylon)
+# Babylon [![build](https://github.com/nais/babylon/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/nais/babylon/actions/workflows/pipeline.yaml) [![CodeQL](https://github.com/nais/babylon/actions/workflows/codeql.yaml/badge.svg)](https://github.com/nais/babylon/actions/workflows/codeql.yaml) [![Go Report Card](https://goreportcard.com/badge/github.com/nais/babylon)](https://goreportcard.com/report/github.com/nais/babylon)
 
 ## About
 
-By default, the application will not perform destructive actions. To arm it set the `ARMED` 💥 environment variable to true. 
+Babylon detects failing applications in your kubernetes cluster, notifies the responsible 
+teams, and cleans them up. By doing this, Babylon will give tidy clusters and avoid 
+unnecessary resource usage.
 
 ## Primary workflow
 
@@ -23,83 +25,31 @@ is the exact same as Prometheus' Alertmanager, see their
 Working hours only limit when resource pruning, limiting when alerts are received is awaiting features
 in Alerterator.
 
-## Using `make`
+## Resource cleanup
 
-```shell
-# To build and deploy
-$ make # make deploy-local works too
-# To check linting
-$ make lint
-```
+### Criteria for pruning
 
-## Local kubernetes development 
+| Type of Error | Reason        |
+| ------------- | -------------| 
+|  `CreateContainerConfigError`     |  A container could not be created due to errors in the resource definition. Happens when e.g., you try to reference a config map that doesn't exist/is missing keys | 
+| `ImagePullBackOff`/`ErrImagePull`      | Happens when a container cannot find/pull an image from its registry, usually terminal. This check is for both containers in a deployment and their init containers     |   
+| `CrashLoopBackOff` | Happens when the application inside the container crashes and/or restarts, see restart threshold below. This check is for both containers in a deployment and their init containers     |
 
-```sh 
-$ minikube start
+### Configuration parameters 
 
-$ eval $(minikube -p minikube docker-env)
+| Name | Default | Description       |
+| -------------| ----- | -------------| 
+| `ARMED` | `false` | By default, the application will not perform destructive actions. To arm it set the `ARMED` 💥 environment variable to true.| 
+| `RESOURCE_AGE` | `10m` | Any resources younger than this threshold will not be checked |  
+| `NOTIFICATION_TIMEOUT` | `24h` | If a resource (currently only deployments) has been annotated with `babylon.nais.io/last-notified` it is skipped while the notification is younger than the configured value |
+| `GRACE_PERIOD` | `24h` | The grace period starts with the first notification related to a resource. Resources will be handled (e.g. deleted, downscaled, or rolled back) at some point after the grace period has ended.  |
+| `RESTART_THRESHOLD` | `200` | During `CrashLoopBackOff` the pod will be ignored while the number of restarts is less than the threshold |
+| `TICKRATE` | `15m` | The tick rate is the duration for which the application's main loop will wait between each run (somewhat similar to `Time.sleep`) | 
+| `LINKERD_DISABLED` | none | Disable waiting on Linkerd sidecar during startup. | 
+| `UNLEASH_URL` | none | URL to connect to [Unleash](https://github.com/Unleash/unleash) |
+| `USE_ALLOWED_NAMESPACES` | `false` | Only allow Babylon to perform cleanup in allowed namespaces specified by `ALLOWED_NAMESPACES` |
+| `ALLOWED_NAMESPACES` | none | Comma-separated list of namespaces (without whitespace) where cleanup is allowed. |
 
-$ docker build -t babylon .
+### Contributing to Babylon
 
-$ kubectl apply -f minikube.yaml
-```
-
-### Integration tests with `kuttl`
-
-We have set up integration tests using `kuttl`. The tests are found in [`tests/e2e`](tests/e2e), 
-see `kuttl`'s [documentation](https://kuttl.dev/docs/). All tests will have a running instance of babylon
-in the background, as specified in [`tests/before/babylon.yaml`](tests/before/babylon.yaml). 
-
-Tests work by specifying a cluster configuration, and then performing assertions on that configuration.
-For example asserting that babylon has deleted some kind of resource.
-
-### Setup kuttl
-
-#### Automatically
-
-```shell
-$ make test
-```
-
-#### Manually
-
-```sh
-# install packages
-$ brew tap kudobuilder/tap
-$ brew install kuttl-cli
-
-# run integration tests with kubernetes-in-docker (KIND)
-$ kubectl kuttl test
-
-# or you can run integration tests with minikube
-$ minikube start
-$ kubectl kuttl test --start-kind=false
-```
-
-### Access running application
-
-```shell
-$ minikube ip
-192.168.64.2 # example, copy your own
-$ sudo $EDITOR /etc/hosts
-192.168.64.2 babylon.local
-$ sudo killall -HUP mDNSResponder
-```
-
-### Developer setup
-
-You must have pre-commit installed, then run `make hooks` to install git hooks. 
-
-### Local InfluxDB testing
-
-`minikube.yaml` contains setup for InfluxDB instance. 
-
-
-**Prerequisites**
-- Setup `influxdb.local` in etc/hosts. See "Access running application" section.
-
-Test query to query the data from the InfluxDB instance:
-
-```bash
-curl -G 'http://influxdb.local/query?pretty=true' --data-urlencode "db=testdb" --data-urlencode "q=SHOW SERIES"
-```
+For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md). 
