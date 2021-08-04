@@ -8,7 +8,7 @@ import (
 type UnleashListener struct{}
 
 func (l UnleashListener) OnCount(name string, enabled bool) {
-	log.Infof("Counted '%s'  as enabled? %v", name, enabled)
+	log.Debugf("Counted '%s'  as enabled? %v", name, enabled)
 }
 
 func (l UnleashListener) OnError(err error) {
@@ -28,5 +28,5 @@ func (l UnleashListener) OnSent(payload unleash.MetricsData) {
 }
 
 func (l UnleashListener) OnWarning(warning error) {
-	log.Infof("WARNING: %s", warning.Error())
+	log.Warnf("WARNING: %s", warning.Error())
 }
