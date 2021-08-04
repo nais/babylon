@@ -7,6 +7,7 @@ import (
 
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/deployment"
+	"github.com/nais/babylon/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -15,26 +16,36 @@ import (
 
 type CoreCriteriaJudge struct {
 	client           client.Client
+	metrics          *metrics.Metrics
 	restartThreshold int32
 	resourceAge      time.Duration
 }
 
-func NewCoreCriteriaJudge(config *config.Config, client client.Client) *CoreCriteriaJudge {
-	return &CoreCriteriaJudge{client: client, restartThreshold: config.RestartThreshold, resourceAge: config.ResourceAge}
+func NewCoreCriteriaJudge(config *config.Config, client client.Client, metric *metrics.Metrics) *CoreCriteriaJudge {
+	return &CoreCriteriaJudge{
+		client:           client,
+		metrics:          metric,
+		restartThreshold: config.RestartThreshold,
+		resourceAge:      config.ResourceAge,
+	}
 }
 
 func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.DeploymentList) []*appsv1.Deployment {
 	var fails []*appsv1.Deployment
 	for i := range deployments.Items {
-		if d.isFailing(ctx, &deployments.Items[i]) {
-			err := d.flagFailingDeployment(ctx, &deployments.Items[i])
+		deploy := &deployments.Items[i]
+		if d.isFailing(ctx, deploy) {
+			err := d.flagFailingDeployment(ctx, deploy)
 			if err != nil {
 				log.Errorf("failed to add notification annotation, err: %v", err)
 
 				continue
 			}
 
-			fails = append(fails, &deployments.Items[i])
+			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.FAILING)
+			fails = append(fails, deploy)
+		} else {
+			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.OK)
 		}
 	}
 
@@ -107,6 +118,7 @@ func (d *CoreCriteriaJudge) allPodsFailingInReplicaset(ctx context.Context, set 
 	for i := range pods.Items {
 		if fail, reason := d.shouldPodBeDeleted(&pods.Items[i]); fail {
 			failedPods++
+			d.metrics.IncRuleActivations(&pods.Items[i], reason)
 			reasons = append(reasons, reason)
 		}
 	}

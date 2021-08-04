@@ -8,6 +8,7 @@ import (
 
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/deployment"
+	"github.com/nais/babylon/pkg/metrics"
 	"github.com/nais/babylon/pkg/utils"
 	"github.com/prometheus/alertmanager/timeinterval"
 	log "github.com/sirupsen/logrus"
@@ -17,11 +18,18 @@ import (
 
 type Executioner struct {
 	client              client.Client
+	metrics             *metrics.Metrics
+	armed               bool
 	activeTimeIntervals map[string][]timeinterval.TimeInterval
 }
 
-func NewExecutioner(config *config.Config, client client.Client) *Executioner {
-	return &Executioner{client: client, activeTimeIntervals: config.ActiveTimeIntervals}
+func NewExecutioner(config *config.Config, client client.Client, metrics *metrics.Metrics) *Executioner {
+	return &Executioner{
+		client:              client,
+		armed:               config.Armed,
+		activeTimeIntervals: config.ActiveTimeIntervals,
+		metrics:             metrics,
+	}
 }
 
 func (e *Executioner) Kill(ctx context.Context, deployments []*appsv1.Deployment) {
@@ -65,6 +73,7 @@ func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1
 		if err != nil {
 			log.Errorf("Downscale failed, %v", err)
 		}
+		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.DownscaleLabel)
 	case err != nil:
 		log.Errorf("getting candidate, %v", err)
 	default:
@@ -74,6 +83,7 @@ func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1
 
 			return
 		}
+		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.RollbackLabel)
 	}
 }
 

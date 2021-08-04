@@ -35,10 +35,6 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	m := metrics.Init(cfg.InfluxdbDatabase)
-	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentCleanup, m.DeploymentGraceCutoff,
-		m.DeploymentUpdated, m.DeploymentStatus, m.SlackChannelMapping)
-
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = nais_io_v1.AddToScheme(scheme)
@@ -82,6 +78,10 @@ func main() {
 	}
 	log.Infof("InfluxDB health: %+v", health)
 
+	m := metrics.Init(cfg.InfluxdbDatabase, unleash, c, influxC)
+	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentCleanup, m.DeploymentGraceCutoff,
+		m.DeploymentUpdated, m.DeploymentStatus, m.SlackChannelMapping)
+
 	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC}
 
 	go gardener(ctx, &s)
@@ -92,9 +92,9 @@ func main() {
 func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
 	ticker := time.Tick(s.Config.TickRate)
-	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client)
+	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client, s.Metrics)
 	cleanUpJudge := criteria.NewCleanUpJudge(s.Config)
-	executioner := criteria.NewExecutioner(s.Config, s.Client)
+	executioner := criteria.NewExecutioner(s.Config, s.Client, s.Metrics)
 
 	for {
 		<-ticker
