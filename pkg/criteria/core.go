@@ -15,12 +15,18 @@ import (
 
 type CoreCriteriaJudge struct {
 	client           client.Client
+	armed            bool
 	restartThreshold int32
 	resourceAge      time.Duration
 }
 
 func NewCoreCriteriaJudge(config *config.Config, client client.Client) *CoreCriteriaJudge {
-	return &CoreCriteriaJudge{client: client, restartThreshold: config.RestartThreshold, resourceAge: config.ResourceAge}
+	return &CoreCriteriaJudge{
+		client:           client,
+		armed:            config.Armed,
+		restartThreshold: config.RestartThreshold,
+		resourceAge:      config.ResourceAge,
+	}
 }
 
 func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.DeploymentList) []*appsv1.Deployment {
@@ -74,7 +80,7 @@ func (d *CoreCriteriaJudge) judge(ctx context.Context, set *appsv1.ReplicaSet) b
 }
 
 func (d *CoreCriteriaJudge) flagFailingDeployment(ctx context.Context, deployment *appsv1.Deployment) error {
-	if deployment.Annotations[config.NotificationAnnotation] == "" {
+	if deployment.Annotations[config.NotificationAnnotation] == "" && d.armed {
 		patch := client.MergeFrom(deployment.DeepCopy())
 		deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
 		err := d.client.Patch(ctx, deployment, patch)

@@ -106,6 +106,9 @@ func gardener(ctx context.Context, s *service.Service) {
 
 		fails := coreCriteriaJudge.Failing(ctx, deployments)
 		deploymentFails := cleanUpJudge.Judge(fails)
-		executioner.Kill(ctx, deploymentFails)
+
+		if s.Config.Armed {
+			executioner.Kill(ctx, deploymentFails)
+		}
 	}
 }
