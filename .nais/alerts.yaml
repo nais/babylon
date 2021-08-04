@@ -15,17 +15,16 @@ spec:
       send_resolved: false
       username: Babylon
   alerts:
-    - alert: Feilende applikasjon rullet tilbake
+    - alert: Rollout av feilende applikasjon avbrutt
       expr: 'babylon_deployment_cleanup_total{reason="rollback"}'
       for: 0s
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
         Det har gått minst 24 timer (med mindre annet er spesifisert) siden
         dere først ble varslet om deploymentet. Siden deploymentet hadde minst en fungerende
-        pod fra en tidligere revisjon, så har den blitt rullet tilbake til den fungerende utgaven.
+        pod fra en tidligere revisjon, har det blitt utført en abort-rollout.
       action: |
-        Slå applikasjonen av og på igjen, utfør `rollback`,
-        eller slett applikasjonen.
+        Slå applikasjonen av og på igjen eller slett den.
 
         Kan også være nyttig å:
         - Les app logs (kubectl logs appname).
@@ -49,7 +48,7 @@ spec:
       for: 24h
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" i over 24 timer.
-        Dersom dere ikke utfører endringer, så vil Babylon nedskalere eller rulle tilbake
+        Dersom dere ikke utfører endringer, vil Babylon nedskalere eller avbryte rollout av
         applikasjonen tidligst om en dag, med mindre annet er spesifisert i `NAIS.yaml`.
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,
@@ -127,13 +126,13 @@ spec:
       send_resolved: false
       username: Babylon Backup Responsible
   alerts:
-    - alert: Feilende applikasjon rullet tilbake
+    - alert: Rollout av feilende applikasjon avbrutt
       expr: 'babylon_deployment_cleanup_total{reason="rollback"}'
       for: 0s
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
         i namespace "\{{ $labels.namespace}}". Siden deploymentet hadde minst en fungerende
-        pod fra en tidligere revisjon, så har den blitt rullet tilbake til den fungerende utgaven.
+        pod fra en tidligere revisjon, har det blitt utført en abort-rollout.
       action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
       severity: good
