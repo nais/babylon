@@ -30,8 +30,8 @@ spec:
     - name: UNLEASH_URL
       value: "{{unleash_url}}"
     {{/if}}
-    - name: NOTIFICATION_TIMEOUT
-      value: "{{notification_timeout}}"
+    - name: NOTIFICATION_DELAY
+      value: "{{notification_delay}}"
     {{#if linkerd_disabled}}
     - name: LINKERD_DISABLED
       value: "{{linkerd_disabled}}"

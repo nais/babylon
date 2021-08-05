@@ -144,7 +144,7 @@ spec:
         group_left(slack_channel)
         (group without ()
         (topk by (deployment, namespace, affected_team) (1, babylon_slack_channel)))
-      for: 24h
+      for: {{ notification_delay }}
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
         i namespace "\{{ $labels.namespace}}".

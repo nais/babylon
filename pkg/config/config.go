@@ -16,16 +16,16 @@ import (
 )
 
 const (
-	DefaultTickRate            = 15 * time.Minute
-	DefaultRestartThreshold    = 200
-	DefaultAge                 = 10 * time.Minute
-	DefaultNotificationTimeout = 24 * time.Hour
-	DefaultGracePeriod         = 24 * time.Hour
-	StringTrue                 = "true"
-	NotificationAnnotation     = "babylon.nais.io/last-notified"
-	GracePeriodLabel           = "babylon.nais.io/grace-period"
-	RollbackLabel              = "babylon.nais.io/rollback"
-	EnabledLabel               = "babylon.nais.io/enabled"
+	DefaultTickRate           = 15 * time.Minute
+	DefaultRestartThreshold   = 200
+	DefaultAge                = 10 * time.Minute
+	DefaultNotificationDelay  = 24 * time.Hour
+	DefaultGracePeriod        = 24 * time.Hour
+	StringTrue                = "true"
+	FailureDetectedAnnotation = "babylon.nais.io/failure-detected"
+	GracePeriodLabel          = "babylon.nais.io/grace-period"
+	RollbackLabel             = "babylon.nais.io/rollback"
+	EnabledLabel              = "babylon.nais.io/enabled"
 )
 
 type Config struct {
@@ -35,7 +35,7 @@ type Config struct {
 	TickRate             time.Duration
 	RestartThreshold     int32
 	ResourceAge          time.Duration
-	NotificationTimeout  time.Duration
+	NotificationDelay    time.Duration
 	UseAllowedNamespaces bool
 	AllowedNamespaces    []string
 	GracePeriod          time.Duration
@@ -64,7 +64,7 @@ func DefaultConfig() Config {
 		TickRate:             DefaultTickRate,
 		RestartThreshold:     DefaultRestartThreshold,
 		ResourceAge:          DefaultAge,
-		NotificationTimeout:  DefaultNotificationTimeout,
+		NotificationDelay:    DefaultNotificationDelay,
 		UseAllowedNamespaces: false,
 		AllowedNamespaces:    []string{},
 		GracePeriod:          DefaultGracePeriod,
@@ -92,7 +92,7 @@ func ParseConfig() Config {
 	resourceAge := GetEnv("RESOURCE_AGE", "10m")
 
 	// Timeout between notifying teams
-	notificationTimeout := GetEnv("NOTIFICATION_TIMEOUT", fmt.Sprintf("%d", cfg.NotificationTimeout))
+	notificationTimeout := GetEnv("NOTIFICATION_DELAY", fmt.Sprintf("%d", cfg.NotificationDelay))
 
 	gracePeriod := GetEnv("GRACE_PERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
 
@@ -124,7 +124,7 @@ func ParseConfig() Config {
 	}
 	nt, err := time.ParseDuration(notificationTimeout)
 	if err == nil {
-		cfg.NotificationTimeout = nt
+		cfg.NotificationDelay = nt
 	}
 	gp, err := time.ParseDuration(gracePeriod)
 	if err == nil {

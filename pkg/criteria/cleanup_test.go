@@ -14,7 +14,7 @@ func TestCleanUpJudge_filterByNamespace(t *testing.T) {
 			useAllowedNamespaces: useAllowedNamespaces,
 			allowedNamespaces:    namespaces,
 			gracePeriod:          0,
-			notificationTimeout:  0,
+			notificationDelay:    0,
 		}
 	}
 
@@ -101,7 +101,7 @@ func TestCleanUpJudge_Judge_not_allowed_namespace(t *testing.T) {
 		useAllowedNamespaces: false,
 		allowedNamespaces:    []string{"default"},
 		gracePeriod:          0,
-		notificationTimeout:  0,
+		notificationDelay:    0,
 	}
 
 	actual := judge.Judge(deploymentList)
@@ -115,12 +115,10 @@ func TestCleanUpJudge_Judge_allowed_namespaces(t *testing.T) {
 	timeout, _ := time.ParseDuration("30s")
 	var deploymentList []*appsv1.Deployment
 	deployment := createDeployment("not", map[string]string{
-		config.GracePeriodLabel:       time.Now().String(),
-		config.NotificationAnnotation: time.Now().Format(time.RFC3339)},
+		config.FailureDetectedAnnotation: time.Now().Format(time.RFC3339)},
 		"30s")
 	deployment2 := createDeployment("default", map[string]string{
-		config.GracePeriodLabel:       time.Now().String(),
-		config.NotificationAnnotation: time.Now().Add(-timeout).Format(time.RFC3339)},
+		config.FailureDetectedAnnotation: time.Now().Add(-timeout).Format(time.RFC3339)},
 		"0s")
 	deploymentList = append(deploymentList, &deployment, &deployment2)
 
@@ -128,7 +126,7 @@ func TestCleanUpJudge_Judge_allowed_namespaces(t *testing.T) {
 		useAllowedNamespaces: true,
 		allowedNamespaces:    []string{"default"},
 		gracePeriod:          timeout,
-		notificationTimeout:  timeout,
+		notificationDelay:    timeout,
 	}
 
 	actual := judge.Judge(deploymentList)
@@ -141,17 +139,16 @@ func TestCleanUpJudge_Judge_allowed_namespaces(t *testing.T) {
 func TestCleanUpJudge_Judge_grace_period(t *testing.T) {
 	var deploymentList []*appsv1.Deployment
 	deployment := createDeployment("", map[string]string{
-		config.GracePeriodLabel:       "1s",
-		config.NotificationAnnotation: time.Now().Format(time.RFC3339)},
+		config.GracePeriodLabel:          "1s",
+		config.FailureDetectedAnnotation: time.Now().Format(time.RFC3339)},
 		"10s")
 	deploymentList = append(deploymentList, &deployment)
 
-	//gracePeriod, _ := time.ParseDuration("10s")
 	judge := CleanUpJudge{
 		useAllowedNamespaces: false,
 		allowedNamespaces:    []string{"default"},
-		gracePeriod:          10,
-		notificationTimeout:  0,
+		gracePeriod:          10 * time.Second,
+		notificationDelay:    0,
 	}
 
 	actual := judge.Judge(deploymentList)
@@ -163,7 +160,7 @@ func TestCleanUpJudge_Judge_grace_period(t *testing.T) {
 
 func TestCleanUpJudge_Judge_notification_timeout(t *testing.T) {
 	var deploymentList []*appsv1.Deployment
-	deployment := createDeployment("", map[string]string{config.NotificationAnnotation: time.Now().Format(time.RFC3339)}, "10s")
+	deployment := createDeployment("", map[string]string{config.FailureDetectedAnnotation: time.Now().Format(time.RFC3339)}, "10s")
 	deploymentList = append(deploymentList, &deployment)
 
 	notificationTimeout, _ := time.ParseDuration("10s")
@@ -171,7 +168,7 @@ func TestCleanUpJudge_Judge_notification_timeout(t *testing.T) {
 		useAllowedNamespaces: false,
 		allowedNamespaces:    []string{"default"},
 		gracePeriod:          0,
-		notificationTimeout:  notificationTimeout,
+		notificationDelay:    notificationTimeout,
 	}
 
 	actual := judge.Judge(deploymentList)

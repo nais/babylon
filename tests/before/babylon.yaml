@@ -37,7 +37,7 @@ spec:
               value: "1s"
             - name: TICKRATE
               value: "5s"
-            - name: NOTIFICATION_TIMEOUT
+            - name: NOTIFICATION_DELAY
               value: "5s"
             - name: USE_ALLOWED_NAMESPACES
               value: "true"

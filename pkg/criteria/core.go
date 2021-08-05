@@ -30,6 +30,7 @@ func NewCoreCriteriaJudge(config *config.Config, client client.Client, metric *m
 	}
 }
 
+//nolint:nestif
 func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.DeploymentList) []*appsv1.Deployment {
 	var fails []*appsv1.Deployment
 	for i := range deployments.Items {
@@ -45,6 +46,18 @@ func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.Dep
 			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.FAILING)
 			fails = append(fails, deploy)
 		} else {
+			if deploy.Annotations[config.FailureDetectedAnnotation] != "" {
+				patch := client.MergeFrom(deploy.DeepCopy())
+				deploy.Annotations[config.FailureDetectedAnnotation] = ""
+				err := d.client.Patch(ctx, deploy, patch)
+				if err != nil {
+					log.Errorf("Error removing %s annotation from deployment %s since it is healthy. Error: %v",
+						config.FailureDetectedAnnotation, deploy.Name, err)
+				} else {
+					log.Infof("Removed %s annotation from deployment %s since it is healthy",
+						config.FailureDetectedAnnotation, deploy.Name)
+				}
+			}
 			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.OK)
 		}
 	}
@@ -85,9 +98,9 @@ func (d *CoreCriteriaJudge) judge(ctx context.Context, set *appsv1.ReplicaSet) b
 }
 
 func (d *CoreCriteriaJudge) flagFailingDeployment(ctx context.Context, deployment *appsv1.Deployment) error {
-	if deployment.Annotations[config.NotificationAnnotation] == "" {
+	if deployment.Annotations[config.FailureDetectedAnnotation] == "" {
 		patch := client.MergeFrom(deployment.DeepCopy())
-		deployment.Annotations[config.NotificationAnnotation] = time.Now().Format(time.RFC3339)
+		deployment.Annotations[config.FailureDetectedAnnotation] = time.Now().Format(time.RFC3339)
 		err := d.client.Patch(ctx, deployment, patch)
 		if err != nil {
 			return fmt.Errorf("%w", err)

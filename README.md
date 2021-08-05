@@ -41,7 +41,7 @@ in Alerterator.
 | -------------| ----- | -------------| 
 | `ARMED` | `false` | By default, the application will not perform destructive actions. To arm it set the `ARMED` 💥 environment variable to true.| 
 | `RESOURCE_AGE` | `10m` | Any resources younger than this threshold will not be checked |  
-| `NOTIFICATION_TIMEOUT` | `24h` | If a resource (currently only deployments) has been annotated with `babylon.nais.io/last-notified` it is skipped while the notification is younger than the configured value |
+| `NOTIFICATION_DELAY` | `24h` | Time between Babylon first detects an resource as failing, and when a notification is sent. Note that Babylon first turns volatile against a resource after `NOTIFICATION_DELAY + GRACE_PERIOD`. Note: This does not actually affect when the notification is sent, that is configured in the [`alerts.yaml`](.nais/alerts.yaml).|
 | `GRACE_PERIOD` | `24h` | The grace period starts with the first notification related to a resource. Resources will be handled (e.g. deleted, downscaled, or rolled back) at some point after the grace period has ended.  |
 | `RESTART_THRESHOLD` | `200` | During `CrashLoopBackOff` the pod will be ignored while the number of restarts is less than the threshold |
 | `TICKRATE` | `15m` | The tick rate is the duration for which the application's main loop will wait between each run (somewhat similar to `Time.sleep`) | 

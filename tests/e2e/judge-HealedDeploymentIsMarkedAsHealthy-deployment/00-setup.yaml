@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healed-deployment-is-healthy
+  labels:
+    app: healed-deployment-is-healthy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: healed-deployment-is-healthy
+  template:
+    metadata:
+      labels:
+        app: healed-deployment-is-healthy
+    spec:
+      containers:
+        - name: healed-deployment-is-healthy
+          image: demoasjndksajdn
+          ports:
+            - containerPort: 8080

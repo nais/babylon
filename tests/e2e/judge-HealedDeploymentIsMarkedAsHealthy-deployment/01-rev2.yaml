@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healed-deployment-is-healthy
+spec:
+  template:
+    spec:
+      containers:
+        - name: healed-deployment-is-healthy
+          image: nginx
