@@ -44,6 +44,7 @@ type Config struct {
 	InfluxdbUsername     SecretToken
 	InfluxdbPassword     SecretToken
 	InfluxdbDatabase     string
+	Cluster              string
 }
 
 type SecretToken string
@@ -73,6 +74,7 @@ func DefaultConfig() Config {
 				{Times: []timeinterval.TimeRange{{StartMinute: 0, EndMinute: 1440}}},
 			},
 		},
+		Cluster: "unknown",
 	}
 }
 
@@ -113,6 +115,8 @@ func ParseConfig() Config {
 
 	influxdbDatabase := GetEnv("AIVEN_INFLUXDB_DATABASE", "")
 	cfg.InfluxdbDatabase = influxdbDatabase
+
+	cfg.Cluster = GetEnv("CLUSTER", cfg.Cluster)
 
 	duration, err := time.ParseDuration(tickRate)
 	if err == nil {

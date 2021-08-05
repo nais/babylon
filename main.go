@@ -82,7 +82,7 @@ func main() {
 	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentCleanup, m.DeploymentGraceCutoff,
 		m.DeploymentUpdated, m.DeploymentStatus, m.SlackChannelMapping)
 
-	h := metrics.NewHistory(influxC, cfg.InfluxdbDatabase)
+	h := metrics.NewHistory(influxC, cfg.InfluxdbDatabase, cfg.Cluster)
 	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC, History: h}
 
 	go gardener(ctx, &s)
