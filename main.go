@@ -95,7 +95,7 @@ func gardener(ctx context.Context, s *service.Service) {
 	ticker := time.Tick(s.Config.TickRate)
 	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client, s.Metrics, s.History)
 	cleanUpJudge := criteria.NewCleanUpJudge(s.Config)
-	executioner := criteria.NewExecutioner(s.Config, s.Client, s.Metrics)
+	executioner := criteria.NewExecutioner(s.Config, s.Client, s.Metrics, s.History)
 
 	for {
 		<-ticker

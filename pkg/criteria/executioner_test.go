@@ -90,7 +90,7 @@ func TestConfig_InActivePeriod(t *testing.T) {
 				}
 			}
 
-			executioner := NewExecutioner(&cfg, nil, nil)
+			executioner := NewExecutioner(&cfg, nil, nil, nil)
 
 			for i, timings := range tt.Times {
 				if executioner.inActivePeriod(timings) != tt.Expected[i] {

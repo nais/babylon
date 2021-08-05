@@ -18,14 +18,25 @@ import (
 
 type Executioner struct {
 	client              client.Client
+	history             *metrics.History
 	metrics             *metrics.Metrics
 	armed               bool
 	activeTimeIntervals map[string][]timeinterval.TimeInterval
 }
 
-func NewExecutioner(config *config.Config, client client.Client, metrics *metrics.Metrics) *Executioner {
+const (
+	Downscale = "downscale"
+	Rollback  = "rollback"
+)
+
+func NewExecutioner(
+	config *config.Config,
+	client client.Client,
+	metrics *metrics.Metrics,
+	history *metrics.History) *Executioner {
 	return &Executioner{
 		client:              client,
+		history:             history,
 		armed:               config.Armed,
 		activeTimeIntervals: config.ActiveTimeIntervals,
 		metrics:             metrics,
@@ -47,7 +58,14 @@ func (e *Executioner) Kill(ctx context.Context, deployments []*appsv1.Deployment
 			continue
 		}
 		if !deployment.IsDeploymentDisabled(deploy) {
-			e.pruneFailingDeployment(ctx, deploy)
+			method, err := e.pruneFailingDeployment(ctx, deploy)
+			if err != nil {
+				log.Errorf("Failed to prune deployment %s: %v", deploy.Name, err)
+			} else {
+				e.history.HistorizeDeploymentKilled(
+					method, deployment.SafeGetLabel(deploy, "team"),
+					e.metrics.SlackChannel(ctx, deploy.Namespace), deploy.Name, e.armed)
+			}
 		}
 	}
 }
@@ -64,26 +82,28 @@ func (e *Executioner) inActivePeriod(time time.Time) bool {
 	return false
 }
 
-func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1.Deployment) {
+func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1.Deployment) (string, error) {
 	rollbacksDisabled := deploy.Labels[config.RollbackLabel] == "false"
 	candidate, err := e.getRollbackCandidate(ctx, deploy)
 	switch {
 	case errors.Is(err, deployment.ErrNoRollbackCandidateFound) || rollbacksDisabled:
 		err = e.downscaleDeployment(ctx, deploy)
 		if err != nil {
-			log.Errorf("Downscale failed, %v", err)
+			return "", err
 		}
 		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.DownscaleLabel)
+
+		return Downscale, nil
 	case err != nil:
-		log.Errorf("getting candidate, %v", err)
+		return "", err
 	default:
 		err = e.rollbackDeployment(ctx, deploy, candidate)
 		if err != nil {
-			log.Errorf("Rollback failed: %v", err)
-
-			return
+			return "", err
 		}
 		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.RollbackLabel)
+
+		return Rollback, nil
 	}
 }
 

@@ -33,12 +33,6 @@ func (h *History) HistorizeDeploymentFailing(reason, team, slackChannel, name st
 	})
 }
 
-func (h *History) HistorizeFlaggedForCleanup(team, slackChannel, name string) {
-	go h.historize("deployment_flagged_for_cleanup", map[string]interface{}{
-		"team": team, "slack_channel": slackChannel, "name": name,
-	})
-}
-
 func (h *History) HistorizeDeploymentKilled(method, team, slackChannel, name string, armed bool) {
 	go h.historize("deployment_killed", map[string]interface{}{
 		"method": method, "team": team, "slack_channel": slackChannel, "name": name, "dry_run": !armed,
