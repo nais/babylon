@@ -33,7 +33,7 @@ test: ## Run tests.
 	@eval $$(minikube docker-env --shell=bash); \
 	$(MAKE) docker-build-fast
 	go test ./...
-	kubectl kuttl test --timeout=60 --start-kind=false
+	kubectl kuttl test --start-kind=false
 
 uml: # generate uml diagram
 	plantuml -tsvg docs/*.puml
