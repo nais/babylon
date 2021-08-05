@@ -4,6 +4,8 @@ metadata:
   name: annotation-prevents-rollback
   labels:
     app: annotation-prevents-rollback
+  annotations:
+    "babylon.nais.io/strategy": "abort-rollout,downscale"
 spec:
   replicas: 1
   selector:

@@ -4,6 +4,8 @@ metadata:
   name: init-crash
   labels:
     app: init-crash
+  annotations:
+    "babylon.nais.io/strategy": "abort-rollout,downscale"
 spec:
   replicas: 1
   selector:

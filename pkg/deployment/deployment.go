@@ -111,7 +111,7 @@ func GetPodsFromReplicaSet(ctx context.Context, c client.Client, rs *appsv1.Repl
 }
 
 func IsDeploymentDisabled(deployment *appsv1.Deployment) bool {
-	enabled := deployment.Labels[config.EnabledLabel]
+	enabled := deployment.Annotations[config.EnabledAnnotation]
 	if strings.ToLower(enabled) == "false" {
 		log.Debugf("deployment %s has disabled Babylon, ignoring", deployment.Name)
 

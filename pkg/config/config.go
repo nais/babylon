@@ -23,9 +23,9 @@ const (
 	DefaultGracePeriod        = 24 * time.Hour
 	StringTrue                = "true"
 	FailureDetectedAnnotation = "babylon.nais.io/failure-detected"
-	GracePeriodLabel          = "babylon.nais.io/grace-period"
-	RollbackLabel             = "babylon.nais.io/rollback"
-	EnabledLabel              = "babylon.nais.io/enabled"
+	GracePeriodAnnotation     = "babylon.nais.io/grace-period"
+	StrategyAnnotation        = "babylon.nais.io/strategy"
+	EnabledAnnotation         = "babylon.nais.io/enabled"
 )
 
 type Config struct {

@@ -4,6 +4,8 @@ metadata:
   name: failconfig
   labels:
     app: failconfig
+  annotations:
+    "babylon.nais.io/strategy": "abort-rollout,downscale"
 spec:
   replicas: 1
   selector:

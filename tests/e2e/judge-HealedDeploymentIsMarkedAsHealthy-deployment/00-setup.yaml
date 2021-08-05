@@ -4,6 +4,8 @@ metadata:
   name: healed-deployment-is-healthy
   labels:
     app: healed-deployment-is-healthy
+  annotations:
+    "babylon.nais.io/strategy": "abort-rollout,downscale"
 spec:
   replicas: 1
   selector:
