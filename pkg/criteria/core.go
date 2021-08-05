@@ -217,6 +217,9 @@ func (d *CoreCriteriaJudge) warnIfMultipleUniqueReasons(deploy *appsv1.Deploymen
 	m := make(map[string]struct{})
 
 	for _, reason := range reasons {
+		if reason == "" {
+			continue
+		}
 		m[reason] = struct{}{}
 	}
 
