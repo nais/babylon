@@ -45,7 +45,7 @@ spec:
         group_left(slack_channel)
         (group without ()
         (topk by (deployment, namespace, affected_team) (1, babylon_slack_channel)))
-      for: 24h
+      for: {{ notification_delay }}
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" i over 24 timer.
         Dersom dere ikke utfører endringer, vil Babylon nedskalere eller avbryte rollout av
@@ -122,7 +122,7 @@ spec:
   receivers: # receivers for all alerts below
     slack:
       channel: babylon-alerts-backup
-      icon_emoji: ':robot:'
+      icon_emoji: ':robot_face:'
       send_resolved: false
       username: Babylon Backup Responsible
   alerts:
