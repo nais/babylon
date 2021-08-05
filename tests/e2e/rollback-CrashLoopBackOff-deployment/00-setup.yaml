@@ -4,6 +4,8 @@ metadata:
   name: failingcont
   labels:
     app: failingcont
+  annotations:
+    "babylon.nais.io/strategy": "downscale,abort-rollout"
 spec:
   replicas: 1
   selector:

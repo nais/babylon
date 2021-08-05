@@ -10,6 +10,8 @@ metadata:
   namespace: grace-test
   labels:
     app: gracer
+  annotations:
+    "babylon.nais.io/strategy": "abort-rollout,downscale"
     "babylon.nais.io/grace-period": 0h
 spec:
   replicas: 1
@@ -76,6 +78,8 @@ metadata:
   namespace: grace-test-babylon
   labels:
     app: grace-test
+  annotations:
+    "babylon.nais.io/strategy": "abort-rollout,downscale"
 spec:
   replicas: 1
   selector:

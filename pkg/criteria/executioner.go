@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/nais/babylon/pkg/config"
@@ -13,6 +14,7 @@ import (
 	"github.com/prometheus/alertmanager/timeinterval"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/utils/strings/slices"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,9 +27,13 @@ type Executioner struct {
 }
 
 const (
-	Downscale = "downscale"
-	Rollback  = "rollback"
+	Downscale            = "downscale"
+	Rollback             = "rollback"
+	DownscaleStrategy    = "downscale"
+	RolloutAbortStrategy = "abort-rollout"
 )
+
+var ErrNoAvailableStrategies = errors.New("no cleanup strategies suitable for this deployment")
 
 func NewExecutioner(
 	config *config.Config,
@@ -83,20 +89,15 @@ func (e *Executioner) inActivePeriod(time time.Time) bool {
 }
 
 func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1.Deployment) (string, error) {
-	rollbacksDisabled := deploy.Labels[config.RollbackLabel] == "false"
+	strategies := strings.Split(deploy.Annotations[config.StrategyAnnotation], ",")
+
+	if len(strategies) == 0 {
+		return "", ErrNoAvailableStrategies
+	}
+
 	candidate, err := e.getRollbackCandidate(ctx, deploy)
 	switch {
-	case errors.Is(err, deployment.ErrNoRollbackCandidateFound) || rollbacksDisabled:
-		err = e.downscaleDeployment(ctx, deploy)
-		if err != nil {
-			return "", err
-		}
-		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.DownscaleLabel)
-
-		return Downscale, nil
-	case err != nil:
-		return "", err
-	default:
+	case slices.Contains(strategies, RolloutAbortStrategy) && err == nil:
 		err = e.rollbackDeployment(ctx, deploy, candidate)
 		if err != nil {
 			return "", err
@@ -104,6 +105,20 @@ func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1
 		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.RollbackLabel)
 
 		return Rollback, nil
+	case slices.Contains(strategies, DownscaleStrategy):
+		err = e.downscaleDeployment(ctx, deploy)
+		if err != nil {
+			return "", err
+		}
+		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.DownscaleLabel)
+
+		return Downscale, nil
+	case err != nil && !errors.Is(err, deployment.ErrNoRollbackCandidateFound):
+		return "", err
+	default:
+		log.Infof("Attempted to kill deployment %s, but no strategies available", deploy.Name)
+
+		return "", ErrNoAvailableStrategies
 	}
 }
 

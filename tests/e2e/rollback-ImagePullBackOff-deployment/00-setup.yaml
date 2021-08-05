@@ -4,6 +4,8 @@ metadata:
   name: demo
   labels:
     app: demo
+  annotations:
+    "babylon.nais.io/strategy": "abort-rollout,downscale"
 spec:
   replicas: 1
   selector:

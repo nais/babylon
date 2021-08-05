@@ -81,10 +81,10 @@ func (j *CleanUpJudge) filterByNotified(deployment *appsv1.Deployment) bool {
 }
 
 func (j *CleanUpJudge) graceDuration(deployment *appsv1.Deployment) time.Duration {
-	gracePeriod, err := time.ParseDuration(deployment.Labels[config.GracePeriodLabel])
+	gracePeriod, err := time.ParseDuration(deployment.Annotations[config.GracePeriodAnnotation])
 	if err != nil {
 		log.Infof("Failed to parse duration for deployment %s: %s",
-			deployment.Name, deployment.Labels[config.GracePeriodLabel])
+			deployment.Name, deployment.Annotations[config.GracePeriodAnnotation])
 
 		return j.gracePeriod
 	}

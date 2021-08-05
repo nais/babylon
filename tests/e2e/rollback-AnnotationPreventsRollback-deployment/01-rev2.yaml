@@ -2,8 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: annotation-prevents-rollback
-  labels:
-    "babylon.nais.io/rollback": "false"
+  annotations:
+    "babylon.nais.io/strategy": "downscale"
 spec:
   template:
     spec:
