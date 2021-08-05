@@ -117,7 +117,7 @@ func (d *CoreCriteriaJudge) flagFailingDeployment(ctx context.Context, deploymen
 func (d *CoreCriteriaJudge) flagHealthyDeployment(ctx context.Context, deploy *appsv1.Deployment) {
 	if deploy.Annotations[config.FailureDetectedAnnotation] != "" {
 		patch := client.MergeFrom(deploy.DeepCopy())
-		deploy.Annotations[config.FailureDetectedAnnotation] = ""
+		delete(deploy.Annotations, config.FailureDetectedAnnotation)
 		err := d.client.Patch(ctx, deploy, patch)
 		if err != nil {
 			log.Errorf("Error removing %s annotation from deployment %s since it is healthy. Error: %v",
