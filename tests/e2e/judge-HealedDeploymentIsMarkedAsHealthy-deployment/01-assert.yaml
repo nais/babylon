@@ -1,0 +1,8 @@
+# check for existance of annotations, see https://github.com/kudobuilder/kuttl/issues/285
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: >
+      test "$(kubectl get deployment healed-deployment-is-healthy -n $NAMESPACE -o json
+      | jq '.metadata.annotations // empty | with_entries(select(.key|match("babylon.nais.io/failure-detected")))'
+      )" = "{}"
