@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Unleash/unleash-client-go/v3"
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -45,12 +44,10 @@ type Metrics struct {
 	DeploymentGraceCutoff *prometheus.GaugeVec
 	SlackChannelMapping   *prometheus.GaugeVec
 	unleashClient         *unleash.Client
-	influxClient          influxdb2.Client
 	client                client.Client
-	InfluxdbDatabase      string
 }
 
-func Init(database string, unleash *unleash.Client, c client.Client, i influxdb2.Client) Metrics {
+func Init(unleash *unleash.Client, c client.Client) Metrics {
 	return Metrics{
 		DeploymentCleanup: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "babylon_deployment_cleanup_total",
@@ -76,10 +73,8 @@ func Init(database string, unleash *unleash.Client, c client.Client, i influxdb2
 			Name: "babylon_slack_channel",
 			Help: "Latest observed slack channel by team",
 		}, []string{"deployment", "namespace", "affected_team", "slack_channel"}),
-		InfluxdbDatabase: database,
-		influxClient:     i,
-		unleashClient:    unleash,
-		client:           c,
+		unleashClient: unleash,
+		client:        c,
 	}
 }
 
@@ -161,17 +156,6 @@ func (m *Metrics) IncRuleActivations(
 		"deployment": deployment, "namespace": pod.Namespace, "affected_team": team, "reason": reason,
 	}).Inc()
 	log.Debugf("RuleActivationsMetric incremented by team: %s", team)
-
-	writeAPI := m.influxClient.WriteAPIBlocking("", m.InfluxdbDatabase+"/autogen")
-	p := influxdb2.NewPoint("rule-activation",
-		map[string]string{},
-		map[string]interface{}{"deployment": deployment, "team": team, "reason": reason},
-		time.Now())
-
-	err := writeAPI.WritePoint(context.Background(), p)
-	if err != nil {
-		log.Errorf("InfluxClient write error: %v", err)
-	}
 }
 
 func (m *Metrics) getUnleash(name string) bool {

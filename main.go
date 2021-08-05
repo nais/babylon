@@ -78,11 +78,12 @@ func main() {
 	}
 	log.Infof("InfluxDB health: %+v", health)
 
-	m := metrics.Init(cfg.InfluxdbDatabase, unleash, c, influxC)
+	m := metrics.Init(unleash, c)
 	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentCleanup, m.DeploymentGraceCutoff,
 		m.DeploymentUpdated, m.DeploymentStatus, m.SlackChannelMapping)
 
-	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC}
+	h := metrics.NewHistory(influxC, cfg.InfluxdbDatabase)
+	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC, History: h}
 
 	go gardener(ctx, &s)
 
@@ -92,7 +93,7 @@ func main() {
 func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
 	ticker := time.Tick(s.Config.TickRate)
-	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client, s.Metrics)
+	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client, s.Metrics, s.History)
 	cleanUpJudge := criteria.NewCleanUpJudge(s.Config)
 	executioner := criteria.NewExecutioner(s.Config, s.Client, s.Metrics)
 

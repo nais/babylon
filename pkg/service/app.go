@@ -14,4 +14,5 @@ type Service struct {
 	Metrics       *metrics.Metrics
 	UnleashClient *unleash.Client
 	InfluxClient  influxdb2.Client
+	History       *metrics.History
 }

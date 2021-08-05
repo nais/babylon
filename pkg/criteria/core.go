@@ -17,47 +17,42 @@ import (
 type CoreCriteriaJudge struct {
 	client           client.Client
 	metrics          *metrics.Metrics
+	history          *metrics.History
 	restartThreshold int32
 	resourceAge      time.Duration
 }
 
-func NewCoreCriteriaJudge(config *config.Config, client client.Client, metric *metrics.Metrics) *CoreCriteriaJudge {
+func NewCoreCriteriaJudge(
+	config *config.Config,
+	client client.Client,
+	metric *metrics.Metrics,
+	history *metrics.History) *CoreCriteriaJudge {
 	return &CoreCriteriaJudge{
 		client:           client,
 		metrics:          metric,
+		history:          history,
 		restartThreshold: config.RestartThreshold,
 		resourceAge:      config.ResourceAge,
 	}
 }
 
-//nolint:nestif
 func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.DeploymentList) []*appsv1.Deployment {
 	var fails []*appsv1.Deployment
 	for i := range deployments.Items {
 		deploy := &deployments.Items[i]
-		if d.isFailing(ctx, deploy) {
-			err := d.flagFailingDeployment(ctx, deploy)
+		if failing, reasons := d.isFailing(ctx, deploy); failing {
+			_, err := d.flagFailingDeployment(ctx, deploy)
 			if err != nil {
 				log.Errorf("failed to add notification annotation, err: %v", err)
 
 				continue
 			}
 
+			d.historizeDeployment(ctx, reasons, deploy)
 			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.FAILING)
 			fails = append(fails, deploy)
 		} else {
-			if deploy.Annotations[config.FailureDetectedAnnotation] != "" {
-				patch := client.MergeFrom(deploy.DeepCopy())
-				delete(deploy.Annotations, config.FailureDetectedAnnotation)
-				err := d.client.Patch(ctx, deploy, patch)
-				if err != nil {
-					log.Errorf("Error removing %s annotation from deployment %s since it is healthy. Error: %v",
-						config.FailureDetectedAnnotation, deploy.Name, err)
-				} else {
-					log.Infof("Removed %s annotation from deployment %s since it is healthy",
-						config.FailureDetectedAnnotation, deploy.Name)
-				}
-			}
+			d.flagHealthyDeployment(ctx, deploy)
 			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.OK)
 		}
 	}
@@ -65,65 +60,85 @@ func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.Dep
 	return fails
 }
 
-func (d *CoreCriteriaJudge) isFailing(ctx context.Context, deploy *appsv1.Deployment) bool {
+func (d *CoreCriteriaJudge) isFailing(ctx context.Context, deploy *appsv1.Deployment) (bool, []string) {
 	minDeploymentAge := time.Now().Add(-d.resourceAge)
 	if deploy.CreationTimestamp.After(minDeploymentAge) {
 		log.Debugf("deployment %s too young, skipping (%v)", deploy.Name, deploy.CreationTimestamp)
 
-		return false
+		return false, nil
 	}
 
 	rs, err := deployment.GetReplicaSetsByDeployment(ctx, d.client, deploy)
 	if err != nil {
 		log.Errorf("Could not get replicasets for deployment %s: %v", deploy.Name, err)
 
-		return false
+		return false, nil
 	}
 
 	log.Tracef("Checking deployment: %s", deploy.Name)
 
 	for j := range rs.Items {
-		if d.judge(ctx, &rs.Items[j]) {
+		if failing, reasons := d.judge(ctx, &rs.Items[j]); failing {
 			log.Infof("Found errors in deployment %s", deploy.Name)
 
-			return true
+			return true, reasons
 		}
 	}
 
-	return false
+	return false, nil
 }
 
-func (d *CoreCriteriaJudge) judge(ctx context.Context, set *appsv1.ReplicaSet) bool {
-	return d.allPodsFailingInReplicaset(ctx, set) || d.initPodsFailing(ctx, set)
+func (d *CoreCriteriaJudge) judge(ctx context.Context, set *appsv1.ReplicaSet) (bool, []string) {
+	initPodsFailing, initReasons := d.initPodsFailing(ctx, set)
+	if podsFailing, podReasons := d.allPodsFailingInReplicaset(ctx, set); podsFailing || initPodsFailing {
+		return true, append(podReasons, initReasons)
+	}
+
+	return false, nil
 }
 
-func (d *CoreCriteriaJudge) flagFailingDeployment(ctx context.Context, deployment *appsv1.Deployment) error {
+func (d *CoreCriteriaJudge) flagFailingDeployment(ctx context.Context, deployment *appsv1.Deployment) (bool, error) {
 	if deployment.Annotations[config.FailureDetectedAnnotation] == "" {
 		patch := client.MergeFrom(deployment.DeepCopy())
 		deployment.Annotations[config.FailureDetectedAnnotation] = time.Now().Format(time.RFC3339)
 		err := d.client.Patch(ctx, deployment, patch)
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return false, fmt.Errorf("%w", err)
 		}
 
 		log.Infof("Marking deployment %s as failing", deployment.Name)
 
-		return nil
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
-func (d *CoreCriteriaJudge) allPodsFailingInReplicaset(ctx context.Context, set *appsv1.ReplicaSet) bool {
+func (d *CoreCriteriaJudge) flagHealthyDeployment(ctx context.Context, deploy *appsv1.Deployment) {
+	if deploy.Annotations[config.FailureDetectedAnnotation] != "" {
+		patch := client.MergeFrom(deploy.DeepCopy())
+		deploy.Annotations[config.FailureDetectedAnnotation] = ""
+		err := d.client.Patch(ctx, deploy, patch)
+		if err != nil {
+			log.Errorf("Error removing %s annotation from deployment %s since it is healthy. Error: %v",
+				config.FailureDetectedAnnotation, deploy.Name, err)
+		} else {
+			log.Infof("Removed %s annotation from deployment %s since it is healthy",
+				config.FailureDetectedAnnotation, deploy.Name)
+		}
+	}
+}
+
+func (d *CoreCriteriaJudge) allPodsFailingInReplicaset(ctx context.Context, set *appsv1.ReplicaSet) (bool, []string) {
 	if *set.Spec.Replicas == 0 {
-		return false
+		return false, nil
 	}
 
 	pods, err := deployment.GetPodsFromReplicaSet(ctx, d.client, set)
 	if err != nil {
 		log.Errorf("finding pods for replicaSet %s failed", set.Name)
 
-		return false
+		return false, nil
 	}
 
 	failedPods := 0
@@ -140,24 +155,26 @@ func (d *CoreCriteriaJudge) allPodsFailingInReplicaset(ctx context.Context, set 
 		log.Debugf("%d/%d failing pods in replicaset %s due to %v", failedPods, len(pods.Items), set.Name, reasons)
 	}
 
-	return failedPods == len(pods.Items)
+	return failedPods == len(pods.Items), reasons
 }
 
-func (d *CoreCriteriaJudge) initPodsFailing(ctx context.Context, set *appsv1.ReplicaSet) bool {
+func (d *CoreCriteriaJudge) initPodsFailing(ctx context.Context, set *appsv1.ReplicaSet) (bool, string) {
 	pods, err := deployment.GetPodsFromReplicaSet(ctx, d.client, set)
 	if err != nil {
-		return false
+		return false, ""
 	}
 
 	for i := range pods.Items {
-		if deployment.IsInitContainerFailed(d.restartThreshold, pods.Items[i].Status.InitContainerStatuses) {
-			log.Infof("Init container failing for rs %s", set.Name)
+		if failing, reason := deployment.IsInitContainerFailed(
+			d.restartThreshold,
+			pods.Items[i].Status.InitContainerStatuses); failing {
+			log.Infof("Init container failing for rs %s due to %s", set.Name, reason)
 
-			return true
+			return true, reason
 		}
 	}
 
-	return false
+	return false, ""
 }
 
 func (d *CoreCriteriaJudge) shouldPodBeDeleted(pod *v1.Pod) (bool, string) {
@@ -193,5 +210,28 @@ func (d *CoreCriteriaJudge) shouldPodBeDeleted(pod *v1.Pod) (bool, string) {
 		return false, ""
 	default:
 		return false, ""
+	}
+}
+
+func (d *CoreCriteriaJudge) warnIfMultipleUniqueReasons(deploy *appsv1.Deployment, reasons []string) {
+	m := make(map[string]struct{})
+
+	for _, reason := range reasons {
+		m[reason] = struct{}{}
+	}
+
+	if len(m) > 1 {
+		log.Warnf("Deployment %s has multiple distinct reasons for failing: %v", deploy.Name, reasons)
+	}
+}
+
+func (d *CoreCriteriaJudge) historizeDeployment(ctx context.Context, reasons []string, deploy *appsv1.Deployment) {
+	if len(reasons) > 0 {
+		d.warnIfMultipleUniqueReasons(deploy, reasons)
+		d.history.HistorizeDeploymentFailing(
+			reasons[0], deployment.SafeGetLabel(deploy, "team"),
+			d.metrics.SlackChannel(ctx, deploy.Namespace), deploy.Name)
+	} else {
+		log.Warnf("Deployment %s marked as failing but without failing reasons: %v", deploy.Name, reasons)
 	}
 }

@@ -21,6 +21,7 @@ var (
 )
 
 const (
+	Unknown                    = "unknown"
 	ImagePullBackOff           = "ImagePullBackOff"
 	ErrImagePull               = "ErrImagePull"
 	CrashLoopBackOff           = "CrashLoopBackOff"
@@ -73,8 +74,14 @@ func IsContainerCrashLoopBackOff(restartThreshold int32, containers []v1.Contain
 	return false
 }
 
-func IsInitContainerFailed(restartThreshold int32, initContainers []v1.ContainerStatus) bool {
-	return IsContainerCrashLoopBackOff(restartThreshold, initContainers) || IsContainerImageCheckFail(initContainers)
+func IsInitContainerFailed(restartThreshold int32, initContainers []v1.ContainerStatus) (bool, string) {
+	if IsContainerCrashLoopBackOff(restartThreshold, initContainers) {
+		return true, CrashLoopBackOff
+	} else if IsContainerImageCheckFail(initContainers) {
+		return true, ImagePullBackOff
+	}
+
+	return false, ""
 }
 
 func GetReplicaSetsByDeployment(ctx context.Context,
@@ -112,4 +119,14 @@ func IsDeploymentDisabled(deployment *appsv1.Deployment) bool {
 	}
 
 	return false
+}
+
+func SafeGetLabel(deploy *appsv1.Deployment, label string) string {
+	value, ok := deploy.Labels[label]
+
+	if !ok {
+		value = Unknown
+	}
+
+	return value
 }
