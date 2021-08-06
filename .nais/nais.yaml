@@ -61,8 +61,10 @@ spec:
   filesFrom:
     - configmap: babylon-working-hours
       mountPath: "/etc/config"
+  {{#if aiven}}
   envFrom:
     - secret: "aiven-influxdb-service-uri"
+  {{/if}}
 ---
 apiVersion: v1
 kind: ConfigMap

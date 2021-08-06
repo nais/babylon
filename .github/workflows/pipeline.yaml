@@ -112,7 +112,7 @@ jobs:
           CLUSTER: ${{ matrix.cluster }}
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           VARS: .nais/${{ matrix.cluster }}.yaml
-          VAR: image=${{ env.docker_image }},cluster=${{ matrix.cluster }}
+          VAR: image=${{ env.docker_image }},cluster=${{ matrix.cluster }},aiven=true
 
   deployToProd:
     name: Deploy to prod
