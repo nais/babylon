@@ -54,6 +54,10 @@ func (e *Executioner) Kill(ctx context.Context, deployments []*appsv1.Deployment
 		return
 	}
 
+	if !e.armed {
+		return
+	}
+
 	for _, deploy := range deployments {
 		// TODO: Move to rollbackDeployment?
 		if deploy.Annotations[deployment.ChangeCauseAnnotationKey] == deployment.RollbackCauseAnnotation {

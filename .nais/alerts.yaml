@@ -49,7 +49,8 @@ spec:
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" i over 24 timer.
         Dersom dere ikke utfører endringer, vil Babylon nedskalere eller avbryte rollout av
-        applikasjonen tidligst om en dag, med mindre annet er spesifisert i `NAIS.yaml`.
+        applikasjonen tidligst om en dag, med mindre annet er spesifisert i `NAIS.yaml`, eller applikasjonen ligger i
+        et prod-kluster.
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,
         eller slett applikasjonen.
