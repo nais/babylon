@@ -16,7 +16,7 @@ spec:
       username: Babylon
   alerts:
     - alert: Rollout av feilende applikasjon avbrutt
-      expr: 'babylon_deployment_cleanup_total{reason="rollback"}'
+      expr: 'babylon_deployment_cleanup_total{reason="rollback",dry_run="false"}'
       for: 0s
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
@@ -48,9 +48,13 @@ spec:
       for: {{ notification_delay }}
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" i over 24 timer.
+        \{{- if $labels.dry_run == "false" }}
         Dersom dere ikke utfører endringer, vil Babylon nedskalere eller avbryte rollout av
-        applikasjonen tidligst om en dag, med mindre annet er spesifisert i `NAIS.yaml`, eller applikasjonen ligger i
-        et prod-kluster.
+        applikasjonen tidligst om en dag, med mindre annet er spesifisert i `NAIS.yaml`.
+        \{{- else }}
+        Babylon er ikke armert i klusteret som applikasjonen kjører i, og vil derfor ikke automatisk rydde opp
+        i ressursen.
+        \{{- end}}
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,
         eller slett applikasjonen.
@@ -67,7 +71,7 @@ spec:
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon nedskalert
-      expr: 'babylon_deployment_cleanup_total{reason="downscale"}'
+      expr: 'babylon_deployment_cleanup_total{reason="downscale",dry_run="false"}'
       for: 0s
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
@@ -128,11 +132,11 @@ spec:
       username: Babylon Backup Responsible
   alerts:
     - alert: Rollout av feilende applikasjon avbrutt
-      expr: 'babylon_deployment_cleanup_total{reason="rollback"}'
+      expr: 'babylon_deployment_cleanup_total{reason="rollback",dry_run="false"}'
       for: 0s
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
-        i namespace "\{{ $labels.namespace}}". Siden deploymentet hadde minst en fungerende
+        i namespace "\{{ $labels.namespace}}" (team: \{{ $labels.affected_team }}). Siden deploymentet hadde minst en fungerende
         pod fra en tidligere revisjon, har det blitt utført en abort-rollout.
       action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
@@ -148,16 +152,21 @@ spec:
       for: {{ notification_delay }}
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
-        i namespace "\{{ $labels.namespace}}".
+        i namespace "\{{ $labels.namespace}}" (team: \{{ $labels.affected_team }}).
+        \{{- if $labels.dry_run == "false" }}
+        Babylon er armert i klusteret.
+        \{{- else }}
+        Babylon er ikke armert i klusteret.
+        \{{- end}}
       action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon nedskalert
-      expr: 'babylon_deployment_cleanup_total{reason="downscale"}'
+      expr: 'babylon_deployment_cleanup_total{reason="downscale",dry_run="false"}'
       for: 0s
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
-        i namespace "\{{ $labels.namespace}}".
+        i namespace "\{{ $labels.namespace}}" (team: \{{ $labels.affected_team }}).
       action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
       severity: warning

@@ -60,7 +60,7 @@ func Init(unleash *unleash.Client, c client.Client) Metrics {
 		DeploymentStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "babylon_deployment_status",
 			Help: "Deployment status marked",
-		}, []string{"deployment", "namespace", "affected_team"}),
+		}, []string{"deployment", "namespace", "affected_team", "dry_run"}),
 		DeploymentUpdated: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "babylon_deployment_last_updated",
 			Help: "When babylon last observed the deployment and updated it's status",
@@ -91,7 +91,8 @@ func (m Metrics) SetGraceCutoff(deployment *appsv1.Deployment, graceCutoff time.
 	}).Set(float64(graceCutoff.Unix()))
 }
 
-func (m Metrics) SetDeploymentStatus(deployment *appsv1.Deployment, channel string, status DeploymentStatus) {
+func (m Metrics) SetDeploymentStatus(deployment *appsv1.Deployment,
+	channel string, armed bool, status DeploymentStatus) {
 	team, ok := deployment.Labels["team"]
 
 	if !ok {
@@ -115,7 +116,7 @@ func (m Metrics) SetDeploymentStatus(deployment *appsv1.Deployment, channel stri
 
 	m.DeploymentStatus.With(prometheus.Labels{
 		"deployment": deployment.Name, "namespace": deployment.Namespace,
-		"affected_team": team,
+		"affected_team": team, "dry_run": strconv.FormatBool(!armed),
 	}).Set(float64(status))
 }
 

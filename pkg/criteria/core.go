@@ -20,19 +20,22 @@ type CoreCriteriaJudge struct {
 	history          *metrics.History
 	restartThreshold int32
 	resourceAge      time.Duration
+	armed            bool
 }
 
 func NewCoreCriteriaJudge(
 	config *config.Config,
 	client client.Client,
 	metric *metrics.Metrics,
-	history *metrics.History) *CoreCriteriaJudge {
+	history *metrics.History,
+	armed bool) *CoreCriteriaJudge {
 	return &CoreCriteriaJudge{
 		client:           client,
 		metrics:          metric,
 		history:          history,
 		restartThreshold: config.RestartThreshold,
 		resourceAge:      config.ResourceAge,
+		armed:            armed,
 	}
 }
 
@@ -49,11 +52,11 @@ func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.Dep
 			}
 
 			d.historizeDeployment(ctx, reasons, deploy)
-			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.FAILING)
+			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), d.armed, metrics.FAILING)
 			fails = append(fails, deploy)
 		} else {
 			d.flagHealthyDeployment(ctx, deploy)
-			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), metrics.OK)
+			d.metrics.SetDeploymentStatus(deploy, d.metrics.SlackChannel(ctx, deploy.Namespace), d.armed, metrics.OK)
 		}
 	}
 
