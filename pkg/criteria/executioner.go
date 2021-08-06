@@ -27,8 +27,6 @@ type Executioner struct {
 }
 
 const (
-	Downscale            = "downscale"
-	Rollback             = "rollback"
 	DownscaleStrategy    = "downscale"
 	RolloutAbortStrategy = "abort-rollout"
 )
@@ -89,7 +87,7 @@ func (e *Executioner) inActivePeriod(time time.Time) bool {
 }
 
 func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1.Deployment) (string, error) {
-	strategies := strings.Split(deploy.Annotations[config.StrategyAnnotation], ",")
+	strategies := getAvailableStrategies(deploy)
 
 	if len(strategies) == 0 {
 		return "", ErrNoAvailableStrategies
@@ -104,7 +102,7 @@ func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1
 		}
 		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.RollbackLabel)
 
-		return Rollback, nil
+		return RolloutAbortStrategy, nil
 	case slices.Contains(strategies, DownscaleStrategy):
 		err = e.downscaleDeployment(ctx, deploy)
 		if err != nil {
@@ -112,7 +110,7 @@ func (e *Executioner) pruneFailingDeployment(ctx context.Context, deploy *appsv1
 		}
 		e.metrics.IncDeploymentCleanup(deploy, e.armed, e.metrics.SlackChannel(ctx, deploy.Namespace), metrics.DownscaleLabel)
 
-		return Downscale, nil
+		return DownscaleStrategy, nil
 	case err != nil && !errors.Is(err, deployment.ErrNoRollbackCandidateFound):
 		return "", err
 	default:
@@ -182,4 +180,14 @@ func (e *Executioner) getRollbackCandidate(
 	}
 
 	return nil, deployment.ErrNoRollbackCandidateFound
+}
+
+func getAvailableStrategies(deployment *appsv1.Deployment) (strategies []string) {
+	if s, ok := deployment.Annotations[config.StrategyAnnotation]; ok {
+		strategies = strings.Split(s, ",")
+	} else {
+		strategies = []string{RolloutAbortStrategy, DownscaleStrategy}
+	}
+
+	return
 }

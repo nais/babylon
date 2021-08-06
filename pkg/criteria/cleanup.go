@@ -59,8 +59,8 @@ func (j *CleanUpJudge) filterByAllowedNamespace(deployment *appsv1.Deployment) b
 }
 
 func (j *CleanUpJudge) filterByNotified(deployment *appsv1.Deployment) bool {
-	if deployment.Annotations[config.FailureDetectedAnnotation] != "" {
-		firstDetectedAsFailing, err := time.Parse(time.RFC3339, deployment.Annotations[config.FailureDetectedAnnotation])
+	if failTime, ok := deployment.Annotations[config.FailureDetectedAnnotation]; ok {
+		firstDetectedAsFailing, err := time.Parse(time.RFC3339, failTime)
 		switch {
 		case err != nil:
 			log.Warnf("Could not parse %s for %s: %v", config.FailureDetectedAnnotation, deployment.Name, err)
