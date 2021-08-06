@@ -48,7 +48,7 @@ spec:
       for: {{ notification_delay }}
       description: |
         Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" i over 24 timer.
-        \{{- if $labels.dry_run == "false" }}
+        \{{- if $labels.dry_run eq "false" }}
         Dersom dere ikke utfører endringer, vil Babylon nedskalere eller avbryte rollout av
         applikasjonen tidligst om en dag, med mindre annet er spesifisert i `NAIS.yaml`.
         \{{- else }}
