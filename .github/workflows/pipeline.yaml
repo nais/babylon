@@ -114,28 +114,27 @@ jobs:
           VARS: .nais/${{ matrix.cluster }}.yaml
           VAR: image=${{ env.docker_image }},cluster=${{ matrix.cluster }},aiven=true
 
-# FIXME: Re-enable when prod alerts work properly
-#  deployToProd:
-#    name: Deploy to prod
-#    needs: deployToDev
-#    runs-on: ubuntu-latest
-#    if: ${{ github.ref == 'refs/heads/main' }}
-#
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        cluster:
-#          - prod-gcp
-#          - prod-fss
-#          - prod-sbs
-#
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Deploy to PROD
-#        uses: nais/deploy/actions/deploy@v1
-#        env:
-#          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-#          CLUSTER: ${{ matrix.cluster }}
-#          RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
-#          VARS: .nais/${{ matrix.cluster }}.yaml
-#          VAR: image=${{ env.docker_image }},cluster=${{ matrix.cluster }}
+  deployToProd:
+    name: Deploy to prod
+    needs: deployToDev
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster:
+          - prod-gcp
+          - prod-fss
+          - prod-sbs
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Deploy to PROD
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: ${{ matrix.cluster }}
+          RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
+          VARS: .nais/${{ matrix.cluster }}.yaml
+          VAR: image=${{ env.docker_image }},cluster=${{ matrix.cluster }}
