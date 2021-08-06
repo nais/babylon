@@ -47,10 +47,11 @@ spec:
         (topk by (deployment, namespace, affected_team) (1, babylon_slack_channel)))
       for: {{ notification_delay }}
       description: |
-        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" i over 24 timer.
-        \{{- if $labels.dry_run eq "false" }}
+        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" over en lengre periode.
+        \{{- if eq $labels.dry_run "false" }}
         Dersom dere ikke utfører endringer, vil Babylon nedskalere eller avbryte rollout av
-        applikasjonen tidligst om en dag, med mindre annet er spesifisert i `NAIS.yaml`.
+        applikasjonen tidligst om en dag (men kun innenfor normal arbeidstid),
+        med mindre annet er spesifisert i `NAIS.yaml`.
         \{{- else }}
         Babylon er ikke armert i klusteret som applikasjonen kjører i, og vil derfor ikke automatisk rydde opp
         i ressursen.
@@ -153,7 +154,7 @@ spec:
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
         i namespace "\{{ $labels.namespace}}" (team: \{{ $labels.affected_team }}).
-        \{{- if $labels.dry_run eq "false" }}
+        \{{- if eq $labels.dry_run "false" }}
         Babylon er armert i klusteret.
         \{{- else }}
         Babylon er ikke armert i klusteret.
