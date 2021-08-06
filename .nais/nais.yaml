@@ -61,10 +61,10 @@ spec:
   filesFrom:
     - configmap: babylon-working-hours
       mountPath: "/etc/config"
-  {{#if in_gcp_cluster}}
+  {{#equal cluster "dev-gcp"}}
   envFrom:
     - secret: "aiven-influxdb-service-uri"
-  {{/if}}
+  {{/equal}}
 ---
 apiVersion: v1
 kind: ConfigMap
