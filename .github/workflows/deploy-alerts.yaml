@@ -1,0 +1,57 @@
+name: Deploy Alerts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .nais/*.yaml
+      - '!.nais/nais.yaml'
+
+jobs:
+  deployToDev:
+    name: Deploy to dev
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster:
+          - dev-gcp
+          - dev-fss
+          - dev-sbs
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Deploy to DEV
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: ${{ matrix.cluster }}
+          RESOURCE: .nais/alerts.yaml
+          VARS: .nais/${{ matrix.cluster }}.yaml
+          VAR: cluster=${{ matrix.cluster }}
+
+  deployToProd:
+    name: Deploy to prod
+    needs: deployToDev
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster:
+          - prod-gcp
+          - prod-fss
+          - prod-sbs
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Deploy to PROD
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: ${{ matrix.cluster }}
+          RESOURCE: .nais/alerts.yaml
+          VARS: .nais/${{ matrix.cluster }}.yaml
+          VAR: cluster=${{ matrix.cluster }}
