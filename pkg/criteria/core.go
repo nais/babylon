@@ -55,7 +55,7 @@ func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.Dep
 		if failing, reasons := d.isFailing(ctx, deploy); failing {
 			_, err := d.flagFailingDeployment(ctx, deploy)
 			if err != nil {
-				log.Errorf("failed to add notification annotation, err: %v", err)
+				log.Errorf("failed to add notification annotation to deployment %s, err: %v", deploy.Name, err)
 
 				continue
 			}
