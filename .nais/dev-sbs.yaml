@@ -3,11 +3,11 @@ ingresses:
 
 log_level: "debug"
 port: "8080"
-armed: "true"
+armed: "false"
 restart_threshold: "200"
 resource_age: "10m"
 tickrate: "1m"
-notification_delay: "24h"
+notification_delay: "2h"
 linkerd_disabled: "true"
 use_allowed_namespaces: "false"
 allowed_namespaces: "babylon,nais,aura"
