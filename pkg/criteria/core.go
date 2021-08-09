@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/nais/babylon/pkg/config"
 	"github.com/nais/babylon/pkg/deployment"
 	"github.com/nais/babylon/pkg/metrics"
@@ -18,6 +19,7 @@ type CoreCriteriaJudge struct {
 	client           client.Client
 	metrics          *metrics.Metrics
 	history          *metrics.History
+	unleash          *unleash.Client
 	restartThreshold int32
 	resourceAge      time.Duration
 	armed            bool
@@ -28,11 +30,13 @@ func NewCoreCriteriaJudge(
 	client client.Client,
 	metric *metrics.Metrics,
 	history *metrics.History,
+	unleash *unleash.Client,
 	armed bool) *CoreCriteriaJudge {
 	return &CoreCriteriaJudge{
 		client:           client,
 		metrics:          metric,
 		history:          history,
+		unleash:          unleash,
 		restartThreshold: config.RestartThreshold,
 		resourceAge:      config.ResourceAge,
 		armed:            armed,
@@ -43,6 +47,11 @@ func (d *CoreCriteriaJudge) Failing(ctx context.Context, deployments *appsv1.Dep
 	var fails []*appsv1.Deployment
 	for i := range deployments.Items {
 		deploy := &deployments.Items[i]
+		if d.unleash != nil && d.unleash.IsEnabled("babylon_remove_first_detected_annotation") {
+			log.Info("Annotation removal active.")
+			d.flagHealthyDeployment(ctx, deploy)
+		}
+
 		if failing, reasons := d.isFailing(ctx, deploy); failing {
 			_, err := d.flagFailingDeployment(ctx, deploy)
 			if err != nil {

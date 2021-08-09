@@ -93,7 +93,8 @@ func main() {
 func gardener(ctx context.Context, s *service.Service) {
 	log.Info("starting gardener")
 	ticker := time.Tick(s.Config.TickRate)
-	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client, s.Metrics, s.History, s.Config.Armed)
+	coreCriteriaJudge := criteria.NewCoreCriteriaJudge(s.Config, s.Client, s.Metrics, s.History,
+		s.UnleashClient, s.Config.Armed)
 	cleanUpJudge := criteria.NewCleanUpJudge(s.Config)
 	executioner := criteria.NewExecutioner(s.Config, s.Client, s.Metrics, s.History)
 
