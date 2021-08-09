@@ -3,11 +3,11 @@ ingresses:
 
 log_level: "debug"
 port: "8080"
-armed: "false"
+armed: "true"
 restart_threshold: "200"
 resource_age: "10m"
 tickrate: "1m"
-notification_delay: "24h"
+notification_delay: "2h"
 use_allowed_namespaces: "false"
 allowed_namespaces: "team-valp,team-krigspensjon,team-sifinntektsmelding,teamsamtykkedigitalisering,babylon,nais,aura,prom-test"
 unleash_url: "https://unleash.nais.io/api/"
