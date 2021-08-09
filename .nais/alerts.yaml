@@ -19,16 +19,16 @@ spec:
       expr: 'babylon_deployment_cleanup_total{reason="rollback",dry_run="false"}'
       for: 0s
       description: |
-        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
-        Det har gått minst 24 timer (med mindre annet er spesifisert) siden
-        dere først ble varslet om deploymentet. Siden deploymentet hadde minst en fungerende
+        Vi har håndtert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
+        Det har gått minst 24 timer siden dere først ble varslet.
+        Siden deploymentet hadde minst en fungerende
         pod fra en tidligere revisjon, har det blitt utført en abort-rollout.
       action: |
         Slå applikasjonen av og på igjen eller slett den.
 
         Kan også være nyttig å:
-        - Les app logs (kubectl logs appname).
-        - Les Application events (kubectl describe deployment appname)
+        - Lese app logs (kubectl logs appname).
+        - Lese Application events (kubectl describe deployment appname)
 
         Om du ønsker å motta disse meldingene i en annen kanal,
         kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
@@ -47,22 +47,21 @@ spec:
         (topk by (deployment, namespace, affected_team) (1, babylon_slack_channel)))
       for: {{ notification_delay }}
       description: |
-        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}" over en lengre periode.
+        Vi har detektert at NAIS-deploymentet "\{{ $labels.deployment }}" har feilet over en lengre periode.
         \{{- if eq $labels.dry_run "false" }}
         Dersom dere ikke utfører endringer, vil Babylon nedskalere eller avbryte rollout av
-        applikasjonen tidligst om en dag (men kun innenfor normal arbeidstid),
-        med mindre annet er spesifisert i `NAIS.yaml`.
+        applikasjonen tidligst om 24 timer.
+        Merk at ingenting vil skje utenfor normal arbeidstid.
         \{{- else }}
-        Babylon er ikke armert i klusteret som applikasjonen kjører i, og vil derfor ikke automatisk rydde opp
-        i ressursen.
+        Babylon er ikke armert i klusteret som applikasjonen kjører i, og vil derfor ignorere ressursen.
         \{{- end}}
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,
         eller slett applikasjonen.
 
         Kan også være nyttig å:
-        - Les app logs (kubectl logs appname).
-        - Les Application events (kubectl describe deployment appname)
+        - Lese app logs (kubectl logs appname).
+        - Lese Application events (kubectl describe deployment appname)
 
         Om du ønsker å motta disse meldingene i en annen kanal,
         kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
@@ -75,16 +74,16 @@ spec:
       expr: 'babylon_deployment_cleanup_total{reason="downscale",dry_run="false"}'
       for: 0s
       description: |
-        Vi har detektert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
-        Det har gått minst 24 timer (med mindre annet er spesifisert) siden
-        dere først ble varslet om deploymentet. Deployment er nå skalert ned til 0 replicas.
+        Vi har håndtert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
+        Det har gått minst 24 timer siden
+        dere først ble varslet, og deploymentet er nå skalert ned til 0 replicas.
       action: |
         Slå applikasjonen av og på igjen, utfør `rollback`,
         eller slett applikasjonen.
 
         Kan også være nyttig å:
-        - Les app logs (kubectl logs appname).
-        - Les Application events (kubectl describe deployment appname)
+        - Lese app logs (kubectl logs appname).
+        - Lese Application events (kubectl describe deployment appname)
 
         Om du ønsker å motta disse meldingene i en annen kanal,
         kan du legge til en annen kanal i `platform-alerts-channel`-feltet i
