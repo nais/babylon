@@ -80,7 +80,7 @@ func main() {
 
 	m := metrics.Init(unleash, c)
 	ctrlMetrics.Registry.MustRegister(m.RuleActivations, m.DeploymentCleanup, m.DeploymentGraceCutoff,
-		m.DeploymentUpdated, m.DeploymentStatus, m.SlackChannelMapping)
+		m.DeploymentUpdated, m.DeploymentStatusTotal, m.SlackChannelMapping)
 
 	h := metrics.NewHistory(influxC, cfg.InfluxdbDatabase, cfg.Cluster)
 	s := service.Service{Config: &cfg, Client: c, Metrics: &m, UnleashClient: unleash, InfluxClient: influxC, History: h}
