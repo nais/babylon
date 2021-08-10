@@ -21,13 +21,13 @@ const Unknown = "unknown"
 type DeploymentStatus float64
 
 // OK Deployment is detected as ok.
-const OK DeploymentStatus = 0
+const OK DeploymentStatus = 1
 
 // FAILING Deployment is detected as failing and currently in grace period.
-const FAILING DeploymentStatus = 1
+const FAILING DeploymentStatus = 100
 
 // CLEANUP Deployment is in the process of rolling back or downscaling.
-const CLEANUP DeploymentStatus = 2
+const CLEANUP DeploymentStatus = 200
 
 const (
 	RollbackLabel  = "rollback"
@@ -39,7 +39,7 @@ type Metrics struct {
 	DeploymentCleanup     *prometheus.CounterVec
 	RuleActivations       *prometheus.CounterVec
 	TeamNotifications     *prometheus.CounterVec
-	DeploymentStatus      *prometheus.GaugeVec
+	DeploymentStatusTotal *prometheus.CounterVec
 	DeploymentUpdated     *prometheus.GaugeVec
 	DeploymentGraceCutoff *prometheus.GaugeVec
 	SlackChannelMapping   *prometheus.GaugeVec
@@ -57,8 +57,8 @@ func Init(unleash *unleash.Client, c client.Client) Metrics {
 			Name: "babylon_rule_activations_total",
 			Help: "Rules triggered",
 		}, []string{"deployment", "namespace", "affected_team", "reason"}),
-		DeploymentStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "babylon_deployment_status",
+		DeploymentStatusTotal: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "babylon_deployment_status_total",
 			Help: "Deployment status marked",
 		}, []string{"deployment", "namespace", "affected_team", "dry_run"}),
 		DeploymentUpdated: promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -114,10 +114,10 @@ func (m Metrics) SetDeploymentStatus(deployment *appsv1.Deployment,
 		"affected_team": team,
 	}).SetToCurrentTime()
 
-	m.DeploymentStatus.With(prometheus.Labels{
+	m.DeploymentStatusTotal.With(prometheus.Labels{
 		"deployment": deployment.Name, "namespace": deployment.Namespace,
 		"affected_team": team, "dry_run": strconv.FormatBool(!armed),
-	}).Set(float64(status))
+	}).Add(float64(status))
 }
 
 func (m *Metrics) IncDeploymentCleanup(

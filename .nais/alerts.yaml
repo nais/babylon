@@ -8,6 +8,7 @@ metadata:
 spec:
   route:
     group_by: [slack_channel]
+    repeatInterval: 12h
   receivers: # receivers for all alerts below
     slack:
       channel: '\{{ index ((index .Alerts 0).Labels) "slack_channel" }}'
@@ -40,7 +41,7 @@ spec:
     - alert: Feilende applikasjon detektert
       # this is basically just joining the most recent `slack_channel` into the metric,
       expr: |
-        (babylon_deployment_status > 0)
+        (increase(babylon_deployment_status_total[2m]) > 10)
         * on (deployment, namespace, affected_team)
         group_left(slack_channel)
         (group without ()
@@ -144,7 +145,7 @@ spec:
     - alert: Feilende applikasjon detektert
       # this is basically just joining the most recent `slack_channel` into the metric,
       expr: |
-        (babylon_deployment_status > 0)
+        (increase(babylon_deployment_status_total[2m]) > 10)
         * on (deployment, namespace, affected_team)
         group_left(slack_channel)
         (group without ()
