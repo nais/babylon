@@ -141,7 +141,7 @@ spec:
         pod fra en tidligere revisjon, har det blitt utført en abort-rollout.
       action: Ignore this message
       documentation: https://github.com/nais/babylon/README.md
-      severity: good
+      severity: warning
     - alert: Feilende applikasjon detektert
       # this is basically just joining the most recent `slack_channel` into the metric,
       expr: |
