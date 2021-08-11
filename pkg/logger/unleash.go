@@ -8,7 +8,7 @@ import (
 type UnleashListener struct{}
 
 func (l UnleashListener) OnCount(name string, enabled bool) {
-	log.Debugf("Counted '%s'  as enabled? %v", name, enabled)
+	log.Tracef("Unleash toggle '%s': %t", name, enabled)
 }
 
 func (l UnleashListener) OnError(err error) {
