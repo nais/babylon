@@ -2,9 +2,9 @@ apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
   name: "babylon"
-  namespace: "babylon"
+  namespace: "nais"
   labels:
-    "team": "babylon"
+    "team": "aura"
 spec:
   image: {{image}}
   env:
