@@ -54,10 +54,6 @@ spec:
     requests:
       cpu: 200m
       memory: 4Gi
-  ingresses:
-    {{#each ingresses as |url|}}
-       - {{url}}
-      {{/each}}
   filesFrom:
     - configmap: babylon-working-hours
       mountPath: "/etc/config"
@@ -77,7 +73,7 @@ data:
           - start_time: 06:00
             end_time: 13:00
 metadata:
-  namespace: babylon
+  namespace: aura
   name: babylon-working-hours
 ---
 apiVersion: networking.k8s.io/v1
@@ -85,9 +81,9 @@ kind: NetworkPolicy
 metadata:
   labels:
     app: babylon
-    team: babylon
+    team: aura
   name: babylon-apiserver
-  namespace: babylon
+  namespace: aura
 spec:
   egress:
     - to:

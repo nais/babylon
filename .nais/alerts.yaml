@@ -2,9 +2,9 @@ apiVersion: "nais.io/v1"
 kind: "Alert"
 metadata:
   name: babylon-alerter
-  namespace: babylon
+  namespace: aura
   labels:
-    team: babylon
+    team: aura
 spec:
   route:
     group_by: [slack_channel]
@@ -98,9 +98,9 @@ apiVersion: nais.io/v1
 kind: Alert
 metadata:
   name: babylon-down-alert
-  namespace: babylon
+  namespace: aura
   labels:
-    team: babylon
+    team: aura
 spec:
   receivers:
     slack:
@@ -121,9 +121,9 @@ apiVersion: nais.io/v1
 kind: Alert
 metadata:
   name: babylon-alerts-backup
-  namespace: babylon
+  namespace: aura
   labels:
-    team: babylon
+    team: aura
 spec:
   receivers: # receivers for all alerts below
     slack:
