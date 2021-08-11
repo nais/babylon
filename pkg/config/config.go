@@ -91,7 +91,7 @@ func ParseConfig() Config {
 	restartThreshold := GetEnv("RESTART_THRESHOLD", fmt.Sprintf("%d", cfg.RestartThreshold))
 
 	// Resource age needed before rollback
-	resourceAge := GetEnv("RESOURCE_AGE", "10m")
+	resourceAge := GetEnv("RESOURCE_AGE", "1h")
 
 	// Timeout between notifying teams
 	notificationTimeout := GetEnv("NOTIFICATION_DELAY", fmt.Sprintf("%d", cfg.NotificationDelay))
