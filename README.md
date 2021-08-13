@@ -47,8 +47,7 @@ in Alerterator.
 | `TICKRATE` | `15m` | The tick rate is the duration for which the application's main loop will wait between each run (somewhat similar to `Time.sleep`) | 
 | `LINKERD_DISABLED` | none | Disable waiting on Linkerd sidecar during startup. | 
 | `UNLEASH_URL` | none | URL to connect to [Unleash](https://github.com/Unleash/unleash) |
-| `USE_ALLOWED_NAMESPACES` | `false` | Only allow Babylon to perform cleanup in allowed namespaces specified by `ALLOWED_NAMESPACES` |
-| `ALLOWED_NAMESPACES` | none | Comma-separated list of namespaces (without whitespace) where cleanup is allowed. |
+| `DENIED_NAMESPACES` | none | Comma-separated list of namespaces (without whitespace) where cleanup is denied. |
 
 ### Contributing to Babylon
 

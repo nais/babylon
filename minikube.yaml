@@ -33,10 +33,8 @@ spec:
               value: "10s"
             - name: NOTIFICATION_DELAY
               value: "60s"
-            - name: USE_ALLOWED_NAMESPACES
-              value: "true"
-            - name: ALLOWED_NAMESPACES
-              value: "default,babylon-test"
+            - name: DENIED_NAMESPACES
+              value: ""
             - name: CLUSTER
               value: "minikube"
             - name: AIVEN_INFLUXDB_SERVICE_URI

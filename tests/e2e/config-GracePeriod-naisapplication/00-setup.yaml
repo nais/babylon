@@ -107,9 +107,7 @@ spec:
               value: "5s"
             - name: NOTIFICATION_DELAY
               value: "5s"
-            - name: USE_ALLOWED_NAMESPACES
-              value: "true"
-            - name: ALLOWED_NAMESPACES
+            - name: DENIED_NAMESPACES
               value: "grace-test"
             - name: LOG_LEVEL
               value: "debug"

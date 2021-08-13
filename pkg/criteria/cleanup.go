@@ -10,25 +10,23 @@ import (
 )
 
 type CleanUpJudge struct {
-	useAllowedNamespaces bool
-	allowedNamespaces    []string
-	gracePeriod          time.Duration
-	notificationDelay    time.Duration
+	deniedNamespaces  []string
+	gracePeriod       time.Duration
+	notificationDelay time.Duration
 }
 
 func NewCleanUpJudge(config *config.Config) *CleanUpJudge {
 	return &CleanUpJudge{
-		useAllowedNamespaces: config.UseAllowedNamespaces,
-		allowedNamespaces:    config.AllowedNamespaces,
-		gracePeriod:          config.GracePeriod,
-		notificationDelay:    config.NotificationDelay,
+		deniedNamespaces:  config.DeniedNamespaces,
+		gracePeriod:       config.GracePeriod,
+		notificationDelay: config.NotificationDelay,
 	}
 }
 
 func (j *CleanUpJudge) Judge(deployments []*appsv1.Deployment) []*appsv1.Deployment {
 	var filteredDeployments []*appsv1.Deployment
 	for i := range deployments {
-		if j.filterByAllowedNamespace(deployments[i]) &&
+		if j.filterByDeniedNamespace(deployments[i]) &&
 			j.filterByNotified(deployments[i]) {
 			filteredDeployments = append(filteredDeployments, deployments[i])
 		}
@@ -37,25 +35,21 @@ func (j *CleanUpJudge) Judge(deployments []*appsv1.Deployment) []*appsv1.Deploym
 	return filteredDeployments
 }
 
-func (j *CleanUpJudge) filterByAllowedNamespace(deployment *appsv1.Deployment) bool {
-	if !j.useAllowedNamespaces {
-		return true
-	}
-
+func (j *CleanUpJudge) filterByDeniedNamespace(deployment *appsv1.Deployment) bool {
 	namespace := deployment.Namespace
-	for i := range j.allowedNamespaces {
-		if j.allowedNamespaces[i] == "" {
+	for i := range j.deniedNamespaces {
+		if j.deniedNamespaces[i] == "" {
 			continue
 		}
-		if strings.Contains(namespace, j.allowedNamespaces[i]) || strings.Contains(j.allowedNamespaces[i], namespace) {
-			log.Tracef("namespace %s allowed", namespace)
+		if strings.Contains(namespace, j.deniedNamespaces[i]) || strings.Contains(j.deniedNamespaces[i], namespace) {
+			log.Tracef("namespace %s denied", namespace)
 
-			return true
+			return false
 		}
 	}
-	log.Tracef("namespace %s not allowed", namespace)
+	log.Tracef("namespace %s allowed", namespace)
 
-	return false
+	return true
 }
 
 func (j *CleanUpJudge) filterByNotified(deployment *appsv1.Deployment) bool {

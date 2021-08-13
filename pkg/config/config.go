@@ -29,22 +29,21 @@ const (
 )
 
 type Config struct {
-	Armed                bool
-	LogLevel             string
-	Port                 string
-	TickRate             time.Duration
-	RestartThreshold     int32
-	ResourceAge          time.Duration
-	NotificationDelay    time.Duration
-	UseAllowedNamespaces bool
-	AllowedNamespaces    []string
-	GracePeriod          time.Duration
-	ActiveTimeIntervals  map[string][]timeinterval.TimeInterval
-	InfluxdbURI          string
-	InfluxdbUsername     SecretToken
-	InfluxdbPassword     SecretToken
-	InfluxdbDatabase     string
-	Cluster              string
+	Armed               bool
+	LogLevel            string
+	Port                string
+	TickRate            time.Duration
+	RestartThreshold    int32
+	ResourceAge         time.Duration
+	NotificationDelay   time.Duration
+	DeniedNamespaces    []string
+	GracePeriod         time.Duration
+	ActiveTimeIntervals map[string][]timeinterval.TimeInterval
+	InfluxdbURI         string
+	InfluxdbUsername    SecretToken
+	InfluxdbPassword    SecretToken
+	InfluxdbDatabase    string
+	Cluster             string
 }
 
 type SecretToken string
@@ -59,16 +58,15 @@ func (ssu SecretToken) SecretString() string {
 
 func DefaultConfig() Config {
 	return Config{
-		LogLevel:             "info",
-		Port:                 "8080",
-		Armed:                false,
-		TickRate:             DefaultTickRate,
-		RestartThreshold:     DefaultRestartThreshold,
-		ResourceAge:          DefaultAge,
-		NotificationDelay:    DefaultNotificationDelay,
-		UseAllowedNamespaces: false,
-		AllowedNamespaces:    []string{},
-		GracePeriod:          DefaultGracePeriod,
+		LogLevel:          "info",
+		Port:              "8080",
+		Armed:             false,
+		TickRate:          DefaultTickRate,
+		RestartThreshold:  DefaultRestartThreshold,
+		ResourceAge:       DefaultAge,
+		NotificationDelay: DefaultNotificationDelay,
+		DeniedNamespaces:  []string{},
+		GracePeriod:       DefaultGracePeriod,
 		ActiveTimeIntervals: map[string][]timeinterval.TimeInterval{
 			"defaultAlways": {
 				{Times: []timeinterval.TimeRange{{StartMinute: 0, EndMinute: 1440}}},
@@ -98,11 +96,8 @@ func ParseConfig() Config {
 
 	gracePeriod := GetEnv("GRACE_PERIOD", fmt.Sprintf("%d", cfg.GracePeriod))
 
-	cfg.UseAllowedNamespaces = GetEnv("USE_ALLOWED_NAMESPACES",
-		fmt.Sprintf("%t", cfg.UseAllowedNamespaces)) == StringTrue
-
-	namespacesFromEnv := GetEnv("ALLOWED_NAMESPACES", "")
-	cfg.AllowedNamespaces = strings.Split(namespacesFromEnv, ",")
+	namespacesFromEnv := GetEnv("DENIED_NAMESPACES", "")
+	cfg.DeniedNamespaces = strings.Split(namespacesFromEnv, ",")
 
 	influxdbServiceURI := GetEnv("AIVEN_INFLUXDB_SERVICE_URI", "")
 	cfg.InfluxdbURI = influxdbServiceURI
