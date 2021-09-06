@@ -17,7 +17,7 @@ spec:
       username: Babylon
   alerts:
     - alert: Rollout av feilende applikasjon avbrutt
-      expr: 'babylon_deployment_cleanup_total{reason="rollback",dry_run="false"}'
+      expr: 'increase(babylon_deployment_cleanup_total{reason="rollback",dry_run="false"}[1h]) > 0'
       for: 0s
       description: |
         Vi har håndtert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
@@ -72,7 +72,7 @@ spec:
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon nedskalert
-      expr: 'babylon_deployment_cleanup_total{reason="downscale",dry_run="false"}'
+      expr: 'increase(babylon_deployment_cleanup_total{reason="downscale",dry_run="false"}[1h]) > 0'
       for: 0s
       description: |
         Vi har håndtert en feil i NAIS-deploymentet "\{{ $labels.deployment }}".
@@ -133,7 +133,7 @@ spec:
       username: Babylon Backup Responsible
   alerts:
     - alert: Rollout av feilende applikasjon avbrutt
-      expr: 'babylon_deployment_cleanup_total{reason="rollback",dry_run="false"}'
+      expr: 'increase(babylon_deployment_cleanup_total{reason="rollback",dry_run="false"}[1h]) > 0'
       for: 0s
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
@@ -163,7 +163,7 @@ spec:
       documentation: https://github.com/nais/babylon/README.md
       severity: warning
     - alert: Feilende applikasjon nedskalert
-      expr: 'babylon_deployment_cleanup_total{reason="downscale",dry_run="false"}'
+      expr: 'increase(babylon_deployment_cleanup_total{reason="downscale",dry_run="false"}[1h]) > 0'
       for: 0s
       description: |
         Babylon har varlset i kanal "\{{ $labels.slack_channel }}" for deployment "\{{ $labels.deployment }}"
