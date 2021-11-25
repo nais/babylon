@@ -6,16 +6,6 @@ env:
   docker_image: ghcr.io/nais/babylon:${{ github.sha }}
 
 jobs:
-  check:
-    name: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Test
-        run: go test ./...
-
   docker:
     name: Build and push Docker image
     needs: check
@@ -46,6 +36,8 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '^1.16.6'
+      - name: Test
+        run: go test ./...
       - uses: actions/cache@v2
         with:
           path: |
