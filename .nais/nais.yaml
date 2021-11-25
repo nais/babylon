@@ -49,11 +49,11 @@ spec:
     instance: influx-nais
   resources:
     limits:
-      cpu: 500m
-      memory: 4Gi
+      cpu: 300m
+      memory: 2Gi
     requests:
-      cpu: 200m
-      memory: 4Gi
+      cpu: 50m
+      memory: 500Mi
   filesFrom:
     - configmap: babylon-working-hours
       mountPath: "/etc/config"
