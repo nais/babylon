@@ -28,8 +28,8 @@ jobs:
       - name: Push image
         run: docker push ${docker_image}
 
-  integrationTest:
-    name: Integration Test
+  testing:
+    name: Run tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
