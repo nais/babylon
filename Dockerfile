@@ -3,7 +3,7 @@ ARG LINKERD_AWAIT_VERSION=v0.2.3
 RUN curl -sSLo /tmp/linkerd-await https://github.com/linkerd/linkerd-await/releases/download/release%2F${LINKERD_AWAIT_VERSION}/linkerd-await-${LINKERD_AWAIT_VERSION}-amd64 && \
     chmod 755 /tmp/linkerd-await
 
-FROM golang:1.16.7-alpine AS builder
+FROM golang:1.17.5-alpine AS builder
 
 WORKDIR /app
 
