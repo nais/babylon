@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Unleash/unleash-client-go/v3 v3.2.3
-	github.com/influxdata/influxdb-client-go/v2 v2.4.0
+	github.com/influxdata/influxdb-client-go/v2 v2.7.0
 	github.com/nais/liberator v0.0.0-20210722133831-9b8319dfd09e
 	github.com/prometheus/alertmanager v0.22.2
 	github.com/prometheus/client_golang v1.11.0
