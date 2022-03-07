@@ -22,7 +22,7 @@ jobs:
           - dev-sbs
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Deploy to DEV
         uses: nais/deploy/actions/deploy@v1
         env:
@@ -46,7 +46,7 @@ jobs:
           - prod-sbs
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Deploy to PROD
         uses: nais/deploy/actions/deploy@v1
         env:
