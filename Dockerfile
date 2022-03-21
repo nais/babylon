@@ -20,7 +20,7 @@ COPY pkg/ pkg/
 
 RUN go build -o babylon
 
-FROM alpine:3.14
+FROM alpine:3.15.1
 
 WORKDIR /app
 COPY --from=linkerd /tmp/linkerd-await /linkerd-await
